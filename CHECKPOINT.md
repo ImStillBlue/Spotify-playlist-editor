@@ -1,7 +1,8 @@
 # Spotify Playlist Editor - Project Checkpoint
 
 **Date:** December 29, 2024
-**Status:** Phase 1-4 Complete (Core functionality working)
+**Last Updated:** December 29, 2024 (Session 1 End)
+**Status:** Phase 1-4 Complete (Core functionality working, ready for BYOK implementation)
 
 ---
 
@@ -176,6 +177,37 @@ go_router: ^14.6.2            # Navigation
 
 ---
 
+## IMPORTANT: API Distribution Issue
+
+### The Problem
+Spotify now requires **organizations** to request Extended Quota Mode. Individual developers cannot get quota extensions, meaning:
+- Apps in Development Mode are limited to **25 manually-added users**
+- Cannot publish to Play Store with a single shared Client ID
+
+### The Solution: "Bring Your Own Key" (BYOK)
+Each user creates their own Spotify Developer app and uses their own Client ID.
+
+### Implementation Needed (Next Session)
+1. **Setup Screen** - First-launch onboarding with step-by-step instructions
+2. **Dynamic Client ID** - Store user's Client ID in secure storage
+3. **Load from Storage** - Modify `SpotifyConfig` to load Client ID dynamically
+4. **Validation** - Verify Client ID works before proceeding
+5. **Update README** - Document self-setup process for users
+
+### Proposed User Flow
+```
+First Launch → Setup Screen → User creates Spotify Dev app →
+User enters Client ID → App validates → Login Screen → Use app
+```
+
+### Benefits of BYOK
+- No quota limits (each user has their own app)
+- No Spotify approval needed
+- Common pattern for open-source API apps
+- Developer not responsible for API abuse
+
+---
+
 ## How to Run
 
 ```bash
@@ -194,3 +226,34 @@ Requires Android emulator or physical device with USB debugging enabled.
 - `android/app/build.gradle.kts` - manifestPlaceholders for OAuth
 - `lib/main.dart` - Complete rewrite
 - All files in `lib/` are new
+
+---
+
+## Session 1 Summary (December 29, 2024)
+
+### What Was Built
+- Complete Flutter project from scratch
+- OAuth 2.0 PKCE authentication with Spotify
+- Playlist browsing with album art
+- Full playlist editor with multi-select drag-and-drop
+- Local changes with save/discard functionality
+- Optimized API calls (combined fetches, batching)
+
+### Key Decisions Made
+- Riverpod for state management
+- Local-only changes until explicit Save (prevents wasted API calls)
+- Multi-drag: dragging a selected track moves ALL selected tracks
+- Minimal API logging (errors only)
+- Removed useless three-dot menu from editor
+
+### What's Next (Session 2)
+1. Implement BYOK (Bring Your Own Key) setup flow
+2. Filter playlist list to only show editable playlists (owned by user OR collaborative)
+3. Then: Undo/redo, search, sort features
+4. Eventually: Play Store release
+
+### Bug/UX Fix Needed
+- **Playlist filtering:** Currently shows ALL playlists including ones user can't edit. Should only show playlists where `owner.id == currentUserId` OR `collaborative == true`. The `Playlist` model already has a `canEdit(userId)` method ready to use.
+
+### To Resume Next Session
+Say: "Read CHECKPOINT.md and let's continue building the Spotify playlist editor. Next priority is implementing the BYOK setup flow."

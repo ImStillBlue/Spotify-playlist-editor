@@ -140,33 +140,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               },
               tooltip: editorState.allSelected ? 'Deselect all' : 'Select all',
             ),
-            // More options menu
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert),
-              onSelected: (value) async {
-                switch (value) {
-                  case 'discard':
-                    notifier.discardChanges();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Changes discarded')),
-                    );
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                if (editorState.hasUnsavedChanges)
-                  const PopupMenuItem(
-                    value: 'discard',
-                    child: Row(
-                      children: [
-                        Icon(Icons.undo, size: 20),
-                        SizedBox(width: 12),
-                        Text('Discard changes'),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+            const SizedBox(width: 8),
           ],
         ),
         body: _buildBody(editorState),
