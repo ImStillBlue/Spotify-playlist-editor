@@ -9,8 +9,6 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
-  DragStartEvent,
-  DragOverlay,
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -22,7 +20,6 @@ import { isLoggedIn } from '../services/auth'
 import { getPlaylist, replacePlaylistTracks } from '../services/spotifyApi'
 import { PlaylistDetails, PlaylistTrack } from '../types/spotify'
 import SortableTrackItem from '../components/SortableTrackItem'
-import TrackItem from '../components/TrackItem'
 
 export default function Editor() {
   const navigate = useNavigate()
@@ -35,7 +32,6 @@ export default function Editor() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -83,13 +79,7 @@ export default function Editor() {
     }
   }
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const index = Number(event.active.id)
-    setActiveIndex(index)
-  }
-
   const handleDragEnd = (event: DragEndEvent) => {
-    setActiveIndex(null)
     const { active, over } = event
 
     if (!over || active.id === over.id) return
@@ -306,7 +296,6 @@ export default function Editor() {
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
@@ -327,17 +316,6 @@ export default function Editor() {
               ))}
             </div>
           </SortableContext>
-
-          <DragOverlay>
-            {activeIndex !== null && tracks[activeIndex] && (
-              <TrackItem
-                track={tracks[activeIndex]}
-                isSelected={selectedIndices.has(activeIndex)}
-                selectedCount={selectedIndices.has(activeIndex) ? selectedIndices.size : 1}
-                isDragOverlay
-              />
-            )}
-          </DragOverlay>
         </DndContext>
       </main>
     </div>

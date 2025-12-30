@@ -29,14 +29,16 @@ export default function SortableTrackItem({
     setNodeRef,
     transform,
     transition,
-    isDragging, // Use dnd-kit's built-in isDragging
+    isDragging,
   } = useSortable({ id })
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    // Hide completely when dragging - dnd-kit manages this state properly
-    opacity: isDragging ? 0 : 1,
+    // Slight scale and shadow when dragging for visual feedback
+    scale: isDragging ? 1.02 : 1,
+    zIndex: isDragging ? 50 : undefined,
+    boxShadow: isDragging ? '0 10px 40px rgba(0,0,0,0.5)' : undefined,
   }
 
   if (!track.track) return null
@@ -51,7 +53,7 @@ export default function SortableTrackItem({
       style={style}
       className={`
         flex items-center gap-3 px-3 py-3 sm:py-2 rounded-lg transition-colors
-        ${isSelected ? 'bg-white/10' : 'active:bg-white/5'}
+        ${isDragging ? 'bg-spotify-light-gray' : isSelected ? 'bg-white/10' : 'active:bg-white/5'}
       `}
     >
       {/* Checkbox - larger touch target on mobile */}
