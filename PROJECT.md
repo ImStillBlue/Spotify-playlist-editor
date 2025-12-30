@@ -19,32 +19,32 @@ Built as a static site (GitHub Pages) using the "Bring Your Own Key" model - eac
 ## Core Features (MVP)
 
 ### Authentication
-- [ ] OAuth 2.0 PKCE flow (client-side, no server needed)
-- [ ] Secure token storage (localStorage/sessionStorage)
-- [ ] Auto-refresh tokens
-- [ ] Login/logout
+- [x] OAuth 2.0 PKCE flow (client-side, no server needed)
+- [x] Secure token storage (localStorage)
+- [x] Auto-refresh tokens
+- [x] Login/logout
 
 ### BYOK Setup (First-Time Flow)
-- [ ] Step-by-step instructions to create Spotify Developer app
-- [ ] User enters their Client ID
-- [ ] Validation before proceeding
-- [ ] Store Client ID locally
+- [x] Step-by-step instructions to create Spotify Developer app
+- [x] User enters their Client ID
+- [x] Validation before proceeding
+- [x] Store Client ID locally
 
 ### Playlist Browsing
-- [ ] View user's editable playlists (owned OR collaborative)
-- [ ] Display playlist cover art, name, owner, track count
-- [ ] Filter out playlists user can't edit
+- [x] View user's editable playlists (owned OR collaborative)
+- [x] Display playlist cover art, name, owner, track count
+- [x] Filter out playlists user can't edit
 
 ### Playlist Editor (Core Differentiator)
-- [ ] Display all tracks with album art, title, artist, album
-- [ ] **Multi-select:** Click/tap to select multiple tracks
-- [ ] **Multi-drag:** Drag any selected track to move ALL selected tracks together
-- [ ] **Move to Top/Bottom:** Quick actions for selected tracks
-- [ ] **Remove tracks:** Mark for removal (local until save)
-- [ ] **Save changes:** Commit all changes to Spotify API
-- [ ] **Discard changes:** Revert to original order
-- [ ] **Unsaved indicator:** Visual feedback when changes pending
-- [ ] **Exit protection:** Warn before leaving with unsaved changes
+- [x] Display all tracks with album art, title, artist, duration
+- [x] **Multi-select:** Click to select multiple tracks
+- [x] **Multi-drag:** Drag any selected track to move ALL selected tracks together
+- [x] **Move to Top/Bottom:** Quick actions for selected tracks
+- [x] **Remove tracks:** Mark for removal (local until save)
+- [x] **Save changes:** Commit all changes to Spotify API
+- [x] **Discard changes:** Revert to original order
+- [x] **Unsaved indicator:** Visual feedback when changes pending
+- [x] **Exit protection:** Warn before leaving with unsaved changes
 
 ---
 
@@ -68,7 +68,7 @@ Built as a static site (GitHub Pages) using the "Bring Your Own Key" model - eac
 - [ ] Bulk select (shift+click for range)
 
 ### Polish
-- [ ] Responsive design (mobile + desktop)
+- [ ] Responsive design improvements
 - [ ] Offline detection/handling
 - [ ] Performance optimization for large playlists (1000+ tracks)
 - [ ] Loading skeletons
@@ -76,16 +76,17 @@ Built as a static site (GitHub Pages) using the "Bring Your Own Key" model - eac
 
 ---
 
-## Technical Stack
+## Technical Stack (Final)
 
 | Layer | Technology |
 |-------|------------|
-| Framework | React + Vite |
+| Framework | React 18 + Vite |
 | Language | TypeScript |
-| Styling | TBD (Tailwind CSS / CSS Modules / styled-components) |
-| State Management | TBD (React Context / Zustand / Jotai) |
-| HTTP Client | fetch / axios |
-| Drag & Drop | TBD (dnd-kit / react-beautiful-dnd) |
+| Styling | Tailwind CSS |
+| State Management | React useState/useEffect (simple, no external lib needed) |
+| HTTP Client | fetch |
+| Drag & Drop | dnd-kit |
+| Routing | react-router-dom |
 | Hosting | GitHub Pages |
 
 ---
@@ -93,6 +94,8 @@ Built as a static site (GitHub Pages) using the "Bring Your Own Key" model - eac
 ## Spotify API Details
 
 **OAuth Flow:** PKCE (Proof Key for Code Exchange) - no client secret needed
+
+**Redirect URI:** `https://imstillblue.github.io/Spotify-playlist-editor/callback`
 
 **Required Scopes:**
 - `playlist-read-private`
@@ -108,7 +111,7 @@ Built as a static site (GitHub Pages) using the "Bring Your Own Key" model - eac
 - `PUT /playlists/{id}/tracks` - Replace all tracks (reorder)
 - `DELETE /playlists/{id}/tracks` - Remove tracks
 
-**Rate Limiting:** 100ms delay between batched calls recommended
+**Rate Limiting:** 100ms delay between batched calls
 
 ---
 
@@ -130,33 +133,30 @@ Built as a static site (GitHub Pages) using the "Bring Your Own Key" model - eac
 
 ---
 
-## Project Structure (Proposed)
+## Project Structure
 
 ```
 src/
 ├── main.tsx                    # Entry point
 ├── App.tsx                     # Router setup
+├── index.css                   # Global styles + Tailwind
+├── vite-env.d.ts               # Vite types
 ├── config/
-│   └── spotify.ts              # OAuth config, scopes
-├── hooks/
-│   ├── useAuth.ts              # Auth state & methods
-│   ├── usePlaylists.ts         # Playlist fetching
-│   └── useEditor.ts            # Editor state, multi-select logic
+│   └── spotify.ts              # OAuth config, client ID storage
 ├── services/
+│   ├── auth.ts                 # OAuth PKCE flow, token management
 │   └── spotifyApi.ts           # All Spotify API calls
 ├── components/
-│   ├── Layout/
-│   ├── PlaylistCard/
-│   ├── TrackItem/
-│   ├── DragHandle/
-│   └── ...
+│   ├── TrackItem.tsx           # Track display (for drag overlay)
+│   └── SortableTrackItem.tsx   # Sortable track with dnd-kit
 ├── pages/
 │   ├── Setup.tsx               # BYOK onboarding
-│   ├── Login.tsx
+│   ├── Login.tsx               # Login screen
+│   ├── Callback.tsx            # OAuth callback handler
 │   ├── Playlists.tsx           # Playlist browser
-│   └── Editor.tsx              # Main editor
+│   └── Editor.tsx              # Main editor with multi-select
 ├── utils/
-│   └── pkce.ts                 # PKCE helpers
+│   └── pkce.ts                 # PKCE helpers (code verifier/challenge)
 └── types/
     └── spotify.ts              # TypeScript interfaces
 ```
@@ -168,16 +168,7 @@ src/
 - Dark theme (Spotify-inspired)
 - Accent color: Spotify green (#1DB954)
 - Clean, minimal UI
-- Mobile-first responsive design
-
----
-
-## Open Questions / Decisions Needed
-
-1. **Styling approach:** Tailwind CSS vs CSS Modules vs styled-components?
-2. **State management:** React Context vs Zustand vs Jotai?
-3. **Drag-and-drop library:** dnd-kit vs react-beautiful-dnd?
-4. **Redirect URI for OAuth:** What will the GitHub Pages URL be?
+- Responsive (works on mobile + desktop)
 
 ---
 
@@ -185,4 +176,5 @@ src/
 
 - [Spotify Web API Docs](https://developer.spotify.com/documentation/web-api)
 - [Spotify OAuth PKCE Guide](https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow)
+- [dnd-kit Docs](https://dndkit.com/)
 - [GitHub Pages Docs](https://docs.github.com/en/pages)
