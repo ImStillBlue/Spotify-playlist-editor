@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { flushSync } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   DndContext,
@@ -87,34 +88,37 @@ export default function Editor() {
     const oldIndex = Number(active.id)
     const newIndex = Number(over.id)
 
-    if (selectedIndices.has(oldIndex) && selectedIndices.size > 1) {
-      // Multi-drag: move all selected tracks
-      const selectedIdxArray = Array.from(selectedIndices).sort((a, b) => a - b)
-      const selectedTracks = selectedIdxArray.map((i) => tracks[i])
-      const remainingTracks = tracks.filter((_, i) => !selectedIndices.has(i))
+    // Use flushSync to force synchronous DOM update, preventing flash
+    flushSync(() => {
+      if (selectedIndices.has(oldIndex) && selectedIndices.size > 1) {
+        // Multi-drag: move all selected tracks
+        const selectedIdxArray = Array.from(selectedIndices).sort((a, b) => a - b)
+        const selectedTracks = selectedIdxArray.map((i) => tracks[i])
+        const remainingTracks = tracks.filter((_, i) => !selectedIndices.has(i))
 
-      // Find where to insert
-      let insertAt = remainingTracks.length
-      for (let i = 0; i < remainingTracks.length; i++) {
-        const originalIdx = tracks.indexOf(remainingTracks[i])
-        if (originalIdx >= newIndex) {
-          insertAt = i
-          break
+        // Find where to insert
+        let insertAt = remainingTracks.length
+        for (let i = 0; i < remainingTracks.length; i++) {
+          const originalIdx = tracks.indexOf(remainingTracks[i])
+          if (originalIdx >= newIndex) {
+            insertAt = i
+            break
+          }
         }
+
+        const newTracks = [
+          ...remainingTracks.slice(0, insertAt),
+          ...selectedTracks,
+          ...remainingTracks.slice(insertAt),
+        ]
+
+        setTracks(newTracks)
+        setSelectedIndices(new Set())
+      } else {
+        setTracks(arrayMove(tracks, oldIndex, newIndex))
+        setSelectedIndices(new Set())
       }
-
-      const newTracks = [
-        ...remainingTracks.slice(0, insertAt),
-        ...selectedTracks,
-        ...remainingTracks.slice(insertAt),
-      ]
-
-      setTracks(newTracks)
-      setSelectedIndices(new Set())
-    } else {
-      setTracks(arrayMove(tracks, oldIndex, newIndex))
-      setSelectedIndices(new Set())
-    }
+    })
   }
 
   const toggleSelect = useCallback((index: number) => {
