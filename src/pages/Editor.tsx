@@ -30,11 +30,11 @@ export default function Editor() {
   const [playlist, setPlaylist] = useState<PlaylistDetails | null>(null)
   const [tracks, setTracks] = useState<PlaylistTrack[]>([])
   const [originalTracks, setOriginalTracks] = useState<PlaylistTrack[]>([])
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [activeId, setActiveId] = useState<string | null>(null)
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -47,7 +47,7 @@ export default function Editor() {
     })
   )
 
-  const hasChanges = JSON.stringify(tracks) !== JSON.stringify(originalTracks)
+  const hasChanges = JSON.stringify(tracks.map(t => t.track?.uri)) !== JSON.stringify(originalTracks.map(t => t.track?.uri))
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -65,7 +65,6 @@ export default function Editor() {
       setLoading(true)
       const data = await getPlaylist(playlistId)
       setPlaylist(data)
-      // Filter out null tracks (deleted tracks)
       const validTracks = data.tracks.items.filter((t) => t.track !== null)
       setTracks(validTracks)
       setOriginalTracks(validTracks)
@@ -77,44 +76,36 @@ export default function Editor() {
     }
   }
 
-  const getTrackId = (track: PlaylistTrack, index: number): string => {
-    return `${track.track?.id || 'unknown'}-${index}`
-  }
-
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string)
+    const index = Number(event.active.id)
+    setActiveIndex(index)
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
-    setActiveId(null)
+    setActiveIndex(null)
     const { active, over } = event
 
     if (!over || active.id === over.id) return
 
-    const oldIndex = tracks.findIndex((t, i) => getTrackId(t, i) === active.id)
-    const newIndex = tracks.findIndex((t, i) => getTrackId(t, i) === over.id)
+    const oldIndex = Number(active.id)
+    const newIndex = Number(over.id)
 
-    if (oldIndex === -1 || newIndex === -1) return
+    if (selectedIndices.has(oldIndex) && selectedIndices.size > 1) {
+      // Multi-drag: move all selected tracks
+      const selectedIdxArray = Array.from(selectedIndices).sort((a, b) => a - b)
+      const selectedTracks = selectedIdxArray.map((i) => tracks[i])
+      const remainingTracks = tracks.filter((_, i) => !selectedIndices.has(i))
 
-    // If dragging a selected item, move all selected items
-    if (selectedIds.has(active.id as string) && selectedIds.size > 1) {
-      // Get indices of all selected tracks
-      const selectedIndices = tracks
-        .map((t, i) => ({ track: t, index: i, id: getTrackId(t, i) }))
-        .filter((item) => selectedIds.has(item.id))
-        .map((item) => item.index)
-        .sort((a, b) => a - b)
+      // Find where to insert
+      let insertAt = remainingTracks.length
+      for (let i = 0; i < remainingTracks.length; i++) {
+        const originalIdx = tracks.indexOf(remainingTracks[i])
+        if (originalIdx >= newIndex) {
+          insertAt = i
+          break
+        }
+      }
 
-      // Remove selected tracks
-      const remainingTracks = tracks.filter((_, i) => !selectedIndices.includes(i))
-      const selectedTracks = selectedIndices.map((i) => tracks[i])
-
-      // Calculate insert position
-      let insertAt = remainingTracks.findIndex((t, i) => getTrackId(t, i) === over.id)
-      if (insertAt === -1) insertAt = remainingTracks.length
-      if (newIndex > oldIndex) insertAt++
-
-      // Insert selected tracks at new position
       const newTracks = [
         ...remainingTracks.slice(0, insertAt),
         ...selectedTracks,
@@ -122,67 +113,55 @@ export default function Editor() {
       ]
 
       setTracks(newTracks)
+      setSelectedIndices(new Set())
     } else {
-      // Single track drag
       setTracks(arrayMove(tracks, oldIndex, newIndex))
+      setSelectedIndices(new Set())
     }
   }
 
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
+  const toggleSelect = useCallback((index: number) => {
+    setSelectedIndices((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
+      if (next.has(index)) {
+        next.delete(index)
       } else {
-        next.add(id)
+        next.add(index)
       }
       return next
     })
   }, [])
 
   const selectAll = () => {
-    const allIds = tracks.map((t, i) => getTrackId(t, i))
-    setSelectedIds(new Set(allIds))
+    setSelectedIndices(new Set(tracks.map((_, i) => i)))
   }
 
   const deselectAll = () => {
-    setSelectedIds(new Set())
+    setSelectedIndices(new Set())
   }
 
   const moveToTop = () => {
-    if (selectedIds.size === 0) return
-    const selected: PlaylistTrack[] = []
-    const rest: PlaylistTrack[] = []
-    tracks.forEach((t, i) => {
-      if (selectedIds.has(getTrackId(t, i))) {
-        selected.push(t)
-      } else {
-        rest.push(t)
-      }
-    })
+    if (selectedIndices.size === 0) return
+    const selectedIdxArray = Array.from(selectedIndices).sort((a, b) => a - b)
+    const selected = selectedIdxArray.map((i) => tracks[i])
+    const rest = tracks.filter((_, i) => !selectedIndices.has(i))
     setTracks([...selected, ...rest])
-    setSelectedIds(new Set())
+    setSelectedIndices(new Set())
   }
 
   const moveToBottom = () => {
-    if (selectedIds.size === 0) return
-    const selected: PlaylistTrack[] = []
-    const rest: PlaylistTrack[] = []
-    tracks.forEach((t, i) => {
-      if (selectedIds.has(getTrackId(t, i))) {
-        selected.push(t)
-      } else {
-        rest.push(t)
-      }
-    })
+    if (selectedIndices.size === 0) return
+    const selectedIdxArray = Array.from(selectedIndices).sort((a, b) => a - b)
+    const selected = selectedIdxArray.map((i) => tracks[i])
+    const rest = tracks.filter((_, i) => !selectedIndices.has(i))
     setTracks([...rest, ...selected])
-    setSelectedIds(new Set())
+    setSelectedIndices(new Set())
   }
 
   const removeSelected = () => {
-    if (selectedIds.size === 0) return
-    setTracks(tracks.filter((t, i) => !selectedIds.has(getTrackId(t, i))))
-    setSelectedIds(new Set())
+    if (selectedIndices.size === 0) return
+    setTracks(tracks.filter((_, i) => !selectedIndices.has(i)))
+    setSelectedIndices(new Set())
   }
 
   const handleSave = async () => {
@@ -191,7 +170,8 @@ export default function Editor() {
       setSaving(true)
       const uris = tracks.map((t) => t.track!.uri)
       await replacePlaylistTracks(playlistId, uris)
-      setOriginalTracks(tracks)
+      setOriginalTracks([...tracks])
+      setSelectedIndices(new Set())
     } catch (err) {
       console.error('Failed to save:', err)
       setError('Failed to save changes')
@@ -201,8 +181,8 @@ export default function Editor() {
   }
 
   const handleDiscard = () => {
-    setTracks(originalTracks)
-    setSelectedIds(new Set())
+    setTracks([...originalTracks])
+    setSelectedIndices(new Set())
   }
 
   const handleBack = () => {
@@ -214,10 +194,6 @@ export default function Editor() {
     navigate('/playlists')
   }
 
-  const activeTrack = activeId
-    ? tracks.find((t, i) => getTrackId(t, i) === activeId)
-    : null
-
   if (loading) {
     return (
       <div className="min-h-screen bg-spotify-black flex items-center justify-center">
@@ -228,41 +204,47 @@ export default function Editor() {
 
   return (
     <div className="min-h-screen bg-spotify-black">
-      <header className="sticky top-0 bg-spotify-black/95 backdrop-blur border-b border-spotify-light-gray z-10">
-        <div className="max-w-4xl mx-auto p-4">
-          <div className="flex items-center gap-4 mb-3">
+      {/* Header */}
+      <header className="sticky top-0 bg-gradient-to-b from-spotify-dark-gray to-spotify-black/95 backdrop-blur-sm z-10">
+        <div className="max-w-3xl mx-auto px-4 py-3">
+          {/* Top row */}
+          <div className="flex items-center gap-3">
             <button
               onClick={handleBack}
-              className="text-spotify-subdued hover:text-white"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
+
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold text-white truncate">
+              <h1 className="text-lg font-bold text-white truncate">
                 {playlist?.name}
               </h1>
-              <p className="text-spotify-subdued text-sm">
+              <p className="text-spotify-subdued text-xs">
                 {tracks.length} tracks
                 {hasChanges && (
-                  <span className="ml-2 text-yellow-500">Unsaved changes</span>
+                  <span className="ml-2 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs">
+                    Unsaved
+                  </span>
                 )}
               </p>
             </div>
+
             {hasChanges && (
               <div className="flex gap-2">
                 <button
                   onClick={handleDiscard}
                   disabled={saving}
-                  className="px-4 py-2 text-white hover:bg-spotify-light-gray rounded-full text-sm"
+                  className="px-4 py-1.5 text-white text-sm hover:bg-white/10 rounded-full transition-colors"
                 >
                   Discard
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-4 py-2 bg-spotify-green hover:bg-spotify-green-dark text-black font-semibold rounded-full text-sm disabled:opacity-50"
+                  className="px-5 py-1.5 bg-spotify-green hover:bg-spotify-green-dark text-black font-semibold rounded-full text-sm transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save'}
                 </button>
@@ -270,42 +252,45 @@ export default function Editor() {
             )}
           </div>
 
-          {selectedIds.size > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-spotify-subdued text-sm">
-                {selectedIds.size} selected
+          {/* Selection toolbar */}
+          {selectedIndices.size > 0 && (
+            <div className="flex items-center gap-1 mt-3 py-2 px-3 bg-spotify-light-gray/50 rounded-lg">
+              <span className="text-white text-sm font-medium mr-2">
+                {selectedIndices.size} selected
               </span>
               <button
                 onClick={deselectAll}
-                className="px-3 py-1 text-sm text-white hover:bg-spotify-light-gray rounded"
+                className="px-3 py-1 text-xs text-spotify-subdued hover:text-white hover:bg-white/10 rounded-full transition-colors"
               >
-                Deselect
+                Clear
               </button>
+              <div className="w-px h-4 bg-spotify-lighter-gray mx-1" />
               <button
                 onClick={moveToTop}
-                className="px-3 py-1 text-sm text-white hover:bg-spotify-light-gray rounded"
+                className="px-3 py-1 text-xs text-spotify-subdued hover:text-white hover:bg-white/10 rounded-full transition-colors"
               >
                 Move to Top
               </button>
               <button
                 onClick={moveToBottom}
-                className="px-3 py-1 text-sm text-white hover:bg-spotify-light-gray rounded"
+                className="px-3 py-1 text-xs text-spotify-subdued hover:text-white hover:bg-white/10 rounded-full transition-colors"
               >
                 Move to Bottom
               </button>
+              <div className="w-px h-4 bg-spotify-lighter-gray mx-1" />
               <button
                 onClick={removeSelected}
-                className="px-3 py-1 text-sm text-red-500 hover:bg-spotify-light-gray rounded"
+                className="px-3 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition-colors"
               >
                 Remove
               </button>
             </div>
           )}
 
-          {selectedIds.size === 0 && tracks.length > 0 && (
+          {selectedIndices.size === 0 && tracks.length > 0 && (
             <button
               onClick={selectAll}
-              className="text-spotify-subdued hover:text-white text-sm"
+              className="mt-2 text-spotify-subdued hover:text-white text-xs transition-colors"
             >
               Select all
             </button>
@@ -313,10 +298,11 @@ export default function Editor() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto p-4">
+      {/* Track list */}
+      <main className="max-w-3xl mx-auto px-4 pb-8">
         {error && (
-          <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-4">
-            <p className="text-red-500">{error}</p>
+          <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4">
+            <p className="text-red-400 text-sm">{error}</p>
           </div>
         )}
 
@@ -327,34 +313,31 @@ export default function Editor() {
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={tracks.map((t, i) => getTrackId(t, i))}
+            items={tracks.map((_, i) => i)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-1">
-              {tracks.map((track, index) => {
-                const id = getTrackId(track, index)
-                return (
-                  <SortableTrackItem
-                    key={id}
-                    id={id}
-                    track={track}
-                    index={index}
-                    isSelected={selectedIds.has(id)}
-                    onToggleSelect={() => toggleSelect(id)}
-                    selectedCount={selectedIds.size}
-                    isDragging={activeId === id}
-                  />
-                )
-              })}
+            <div className="divide-y divide-spotify-light-gray/30">
+              {tracks.map((track, index) => (
+                <SortableTrackItem
+                  key={`${track.track?.id}-${index}`}
+                  id={index}
+                  track={track}
+                  index={index}
+                  isSelected={selectedIndices.has(index)}
+                  onToggleSelect={() => toggleSelect(index)}
+                  selectedCount={selectedIndices.size}
+                  isDragging={activeIndex === index}
+                />
+              ))}
             </div>
           </SortableContext>
 
           <DragOverlay>
-            {activeId && activeTrack && (
+            {activeIndex !== null && tracks[activeIndex] && (
               <TrackItem
-                track={activeTrack}
-                isSelected={selectedIds.has(activeId)}
-                selectedCount={selectedIds.has(activeId) ? selectedIds.size : 1}
+                track={tracks[activeIndex]}
+                isSelected={selectedIndices.has(activeIndex)}
+                selectedCount={selectedIndices.has(activeIndex) ? selectedIndices.size : 1}
                 isDragOverlay
               />
             )}

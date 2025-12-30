@@ -20,7 +20,6 @@ export default function TrackItem({
   isSelected,
   selectedCount = 1,
   isDragOverlay = false,
-  onToggleSelect,
 }: TrackItemProps) {
   if (!track.track) return null
 
@@ -31,66 +30,47 @@ export default function TrackItem({
   return (
     <div
       className={`
-        flex items-center gap-3 p-2 rounded-lg
-        ${isDragOverlay ? 'bg-spotify-light-gray shadow-xl' : ''}
-        ${isSelected && !isDragOverlay ? 'bg-spotify-light-gray/50' : ''}
+        flex items-center gap-3 px-2 py-2 rounded-md
+        ${isDragOverlay ? 'bg-spotify-light-gray shadow-2xl shadow-black/50 border border-white/10' : ''}
+        ${isSelected && !isDragOverlay ? 'bg-white/10' : ''}
       `}
     >
-      {!isDragOverlay && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onToggleSelect?.()
-          }}
-          className={`
-            w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0
-            ${isSelected
-              ? 'bg-spotify-green border-spotify-green'
-              : 'border-spotify-subdued hover:border-white'
-            }
-          `}
-        >
-          {isSelected && (
-            <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </svg>
-          )}
-        </button>
-      )}
+      {/* Checkbox placeholder for alignment */}
+      <div className="w-4 h-4 flex-shrink-0" />
 
+      {/* Album art */}
       {albumArt ? (
         <img src={albumArt} alt="" className="w-10 h-10 rounded flex-shrink-0" />
       ) : (
-        <div className="w-10 h-10 rounded bg-spotify-lighter-gray flex-shrink-0" />
+        <div className="w-10 h-10 rounded bg-spotify-light-gray flex items-center justify-center flex-shrink-0">
+          <svg className="w-5 h-5 text-spotify-subdued" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+          </svg>
+        </div>
       )}
 
+      {/* Track info */}
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm truncate">{name}</p>
+        <p className={`text-sm truncate ${isSelected ? 'text-spotify-green' : 'text-white'}`}>
+          {name}
+        </p>
         <p className="text-spotify-subdued text-xs truncate">{artistNames}</p>
       </div>
 
-      <span className="text-spotify-subdued text-xs flex-shrink-0">
+      {/* Duration */}
+      <span className="text-spotify-subdued text-xs flex-shrink-0 tabular-nums">
         {formatDuration(duration_ms)}
       </span>
 
+      {/* Selected count badge */}
       {isDragOverlay && isSelected && selectedCount > 1 && (
-        <span className="bg-spotify-green text-black text-xs font-semibold px-2 py-1 rounded-full">
+        <span className="bg-spotify-green text-black text-xs font-bold px-2 py-0.5 rounded-full">
           {selectedCount}
         </span>
       )}
 
-      {!isDragOverlay && (
-        <div className="text-spotify-subdued hover:text-white cursor-grab flex-shrink-0 p-1">
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <circle cx="9" cy="6" r="1.5" />
-            <circle cx="15" cy="6" r="1.5" />
-            <circle cx="9" cy="12" r="1.5" />
-            <circle cx="15" cy="12" r="1.5" />
-            <circle cx="9" cy="18" r="1.5" />
-            <circle cx="15" cy="18" r="1.5" />
-          </svg>
-        </div>
-      )}
+      {/* Drag handle placeholder */}
+      {!isDragOverlay && <div className="w-6 flex-shrink-0" />}
     </div>
   )
 }
