@@ -9,7 +9,6 @@ interface SortableTrackItemProps {
   isSelected: boolean
   onToggleSelect: () => void
   selectedCount: number
-  isDragging: boolean
 }
 
 function formatDuration(ms: number): string {
@@ -23,24 +22,21 @@ export default function SortableTrackItem({
   track,
   isSelected,
   onToggleSelect,
-  isDragging,
 }: SortableTrackItemProps) {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
-  } = useSortable({
-    id,
-    transition: {
-      duration: 200,
-      easing: 'ease',
-    },
-  })
+    transition,
+    isDragging, // Use dnd-kit's built-in isDragging
+  } = useSortable({ id })
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition: transform ? 'transform 200ms ease' : undefined,
+    transition,
+    // Hide completely when dragging - dnd-kit manages this state properly
+    opacity: isDragging ? 0 : 1,
   }
 
   if (!track.track) return null
@@ -56,7 +52,6 @@ export default function SortableTrackItem({
       className={`
         flex items-center gap-3 px-3 py-3 sm:py-2 rounded-lg transition-colors
         ${isSelected ? 'bg-white/10' : 'active:bg-white/5'}
-        ${isDragging ? 'opacity-40' : ''}
       `}
     >
       {/* Checkbox - larger touch target on mobile */}

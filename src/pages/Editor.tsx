@@ -323,7 +323,6 @@ export default function Editor() {
                   isSelected={selectedIndices.has(index)}
                   onToggleSelect={() => toggleSelect(index)}
                   selectedCount={selectedIndices.size}
-                  isDragging={activeIndex === index}
                 />
               ))}
             </div>
