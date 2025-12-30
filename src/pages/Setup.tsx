@@ -5,7 +5,7 @@ import { isLoggedIn } from '../services/auth'
 
 export default function Setup() {
   const navigate = useNavigate()
-  const [clientIdInput, setClientIdInput] = useState('')
+  const [clientIdInput, setClientIdInput] = useState('c41e8c72e67141cbbf3f6765c06738b7')
   const [error, setError] = useState('')
 
   useEffect(() => {

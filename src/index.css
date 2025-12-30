@@ -25,27 +25,18 @@
 }
 
 html {
-  /* Ensure smooth scrolling */
   scroll-behavior: smooth;
-  /* Prevent text size adjustment on orientation change */
   -webkit-text-size-adjust: 100%;
 }
 
 body {
   min-height: 100vh;
-  min-height: 100dvh; /* Dynamic viewport height for mobile */
-  /* Prevent rubber-band scrolling on iOS */
-  position: fixed;
-  width: 100%;
-  overflow: hidden;
+  min-height: 100dvh;
 }
 
 #root {
   min-height: 100vh;
   min-height: 100dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
 }
 
 /* Safe area utilities for notched phones */
@@ -64,23 +55,9 @@ body {
   }
 }
 
-/* Disable text selection on interactive elements for touch */
+/* Disable tap highlight on touch devices */
 button, [role="button"] {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   user-select: none;
-}
-
-/* Better touch scrolling */
-.overflow-y-auto {
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Hide scrollbar but keep functionality */
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
 }
