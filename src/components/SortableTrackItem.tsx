@@ -30,12 +30,17 @@ export default function SortableTrackItem({
     listeners,
     setNodeRef,
     transform,
-    transition,
-  } = useSortable({ id })
+  } = useSortable({
+    id,
+    transition: {
+      duration: 200,
+      easing: 'ease',
+    },
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: transform ? 'transform 200ms ease' : undefined,
   }
 
   if (!track.track) return null
