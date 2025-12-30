@@ -1,21 +1,29 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { hasClientId, setClientId } from '../config/spotify'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { hasClientId, setClientId, getClientId } from '../config/spotify'
 import { isLoggedIn } from '../services/auth'
 
 export default function Setup() {
   const navigate = useNavigate()
-  const [clientIdInput, setClientIdInput] = useState('c41e8c72e67141cbbf3f6765c06738b7')
+  const [searchParams] = useSearchParams()
+  const isEditing = searchParams.get('edit') === 'true'
+
+  // Pre-fill with existing client ID if available, otherwise use default
+  const existingClientId = getClientId()
+  const [clientIdInput, setClientIdInput] = useState(existingClientId || 'c41e8c72e67141cbbf3f6765c06738b7')
   const [error, setError] = useState('')
 
   useEffect(() => {
+    // Skip auto-redirect if user is editing their client ID
+    if (isEditing) return
+
     // If already set up and logged in, go to playlists
     if (hasClientId() && isLoggedIn()) {
       navigate('/playlists')
     } else if (hasClientId()) {
       navigate('/login')
     }
-  }, [navigate])
+  }, [navigate, isEditing])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,7 +55,9 @@ export default function Setup() {
         </p>
 
         <div className="bg-spotify-dark-gray rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Setup Required</h2>
+          <h2 className="text-xl font-semibold text-white mb-4">
+            {isEditing ? 'Change Client ID' : 'Setup Required'}
+          </h2>
 
           <p className="text-spotify-subdued mb-4">
             Due to Spotify API restrictions, you need to create your own Spotify Developer app.
@@ -103,8 +113,17 @@ export default function Setup() {
               type="submit"
               className="w-full bg-spotify-green hover:bg-spotify-green-dark text-black font-semibold rounded-full py-3 transition-colors"
             >
-              Continue
+              {isEditing ? 'Save & Continue' : 'Continue'}
             </button>
+            {isEditing && (
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="w-full mt-3 text-spotify-subdued hover:text-white text-sm transition-colors"
+              >
+                Cancel
+              </button>
+            )}
           </form>
         </div>
       </div>

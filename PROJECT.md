@@ -147,8 +147,7 @@ src/
 │   ├── auth.ts                 # OAuth PKCE flow, token management
 │   └── spotifyApi.ts           # All Spotify API calls
 ├── components/
-│   ├── TrackItem.tsx           # Track display (for drag overlay)
-│   └── SortableTrackItem.tsx   # Sortable track with dnd-kit
+│   └── SortableTrackItem.tsx   # Sortable track with dnd-kit + multi-drag badge
 ├── pages/
 │   ├── Setup.tsx               # BYOK onboarding
 │   ├── Login.tsx               # Login screen
@@ -169,6 +168,21 @@ src/
 - Accent color: Spotify green (#1DB954)
 - Clean, minimal UI
 - Responsive (works on mobile + desktop)
+
+---
+
+## Session Checkpoint (Dec 30, 2024)
+
+### Recently Completed
+- Multi-drag badge: When dragging multiple selected tracks, shows "+X" badge on album art
+- Smooth transitions: Selection toolbar, Unsaved badge, and Save/Discard buttons now animate smoothly
+- Login flow fix: "Change Client ID" button now works correctly (navigates to Setup with `?edit=true`)
+- Setup page: Pre-fills existing client ID when editing, shows "Cancel" button to go back
+
+### Known Issues / Future Polish
+- Consider adding page transition animations (route changes)
+- Loading states could use skeleton loaders instead of spinners
+- Error states could have retry buttons
 
 ---
 

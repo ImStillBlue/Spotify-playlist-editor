@@ -42,8 +42,8 @@ export default function Login() {
         </button>
 
         <button
-          onClick={() => navigate('/')}
-          className="block mx-auto mt-4 text-spotify-subdued hover:text-white text-sm"
+          onClick={() => navigate('/?edit=true')}
+          className="block mx-auto mt-4 text-spotify-subdued hover:text-white text-sm transition-colors"
         >
           Change Client ID
         </button>

@@ -226,72 +226,73 @@ export default function Editor() {
               <h1 className="text-base sm:text-lg font-bold text-white truncate">
                 {playlist?.name}
               </h1>
-              <p className="text-spotify-subdued text-xs">
+              <p className="text-spotify-subdued text-xs flex items-center">
                 {tracks.length} tracks
-                {hasChanges && (
-                  <span className="ml-2 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs">
-                    Unsaved
-                  </span>
-                )}
+                <span className={`ml-2 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs transition-all duration-200 ${hasChanges ? 'opacity-100 scale-100' : 'opacity-0 scale-75 w-0 ml-0 px-0'}`}>
+                  Unsaved
+                </span>
               </p>
             </div>
 
-            {hasChanges && (
-              <div className="flex gap-2">
-                <button
-                  onClick={handleDiscard}
-                  disabled={saving}
-                  className="px-3 sm:px-4 py-2 text-white text-sm active:bg-white/10 rounded-full transition-colors"
-                >
-                  Discard
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="px-4 sm:px-5 py-2 bg-spotify-green active:bg-spotify-green-dark text-black font-semibold rounded-full text-sm transition-colors disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            )}
+            <div className={`flex gap-2 transition-all duration-200 ${hasChanges ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none w-0'}`}>
+              <button
+                onClick={handleDiscard}
+                disabled={saving}
+                className="px-3 sm:px-4 py-2 text-white text-sm active:bg-white/10 rounded-full transition-colors"
+              >
+                Discard
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-4 sm:px-5 py-2 bg-spotify-green active:bg-spotify-green-dark text-black font-semibold rounded-full text-sm transition-colors disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
           </div>
 
-          {/* Selection toolbar - mobile optimized */}
-          {selectedIndices.size > 0 && (
-            <div className="mt-3 py-2 px-3 bg-spotify-light-gray/50 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-white text-sm font-medium">
-                  {selectedIndices.size} selected
-                </span>
-                <button
-                  onClick={deselectAll}
-                  className="px-3 py-1.5 text-sm text-spotify-subdued active:text-white active:bg-white/10 rounded-full transition-colors"
-                >
-                  Clear
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={moveToTop}
-                  className="flex-1 px-3 py-2.5 text-sm text-white bg-white/10 active:bg-white/20 rounded-lg transition-colors"
-                >
-                  Move to Top
-                </button>
-                <button
-                  onClick={moveToBottom}
-                  className="flex-1 px-3 py-2.5 text-sm text-white bg-white/10 active:bg-white/20 rounded-lg transition-colors"
-                >
-                  Move to Bottom
-                </button>
-                <button
-                  onClick={removeSelected}
-                  className="px-4 py-2.5 text-sm text-red-400 bg-red-500/10 active:bg-red-500/20 rounded-lg transition-colors"
-                >
-                  Remove
-                </button>
+          {/* Selection toolbar - mobile optimized with smooth transition */}
+          <div
+            className="grid transition-all duration-200 ease-out"
+            style={{ gridTemplateRows: selectedIndices.size > 0 ? '1fr' : '0fr' }}
+          >
+            <div className="overflow-hidden">
+              <div className={`mt-3 py-2 px-3 bg-spotify-light-gray/50 rounded-lg transition-opacity duration-200 ${selectedIndices.size > 0 ? 'opacity-100' : 'opacity-0'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-white text-sm font-medium">
+                    {selectedIndices.size} selected
+                  </span>
+                  <button
+                    onClick={deselectAll}
+                    className="px-3 py-1.5 text-sm text-spotify-subdued active:text-white active:bg-white/10 rounded-full transition-colors"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={moveToTop}
+                    className="flex-1 px-3 py-2.5 text-sm text-white bg-white/10 active:bg-white/20 rounded-lg transition-colors"
+                  >
+                    Move to Top
+                  </button>
+                  <button
+                    onClick={moveToBottom}
+                    className="flex-1 px-3 py-2.5 text-sm text-white bg-white/10 active:bg-white/20 rounded-lg transition-colors"
+                  >
+                    Move to Bottom
+                  </button>
+                  <button
+                    onClick={removeSelected}
+                    className="px-4 py-2.5 text-sm text-red-400 bg-red-500/10 active:bg-red-500/20 rounded-lg transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             </div>
-          )}
+          </div>
 
         </div>
       </header>
