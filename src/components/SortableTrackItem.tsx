@@ -9,6 +9,7 @@ interface SortableTrackItemProps {
   isSelected: boolean
   onToggleSelect: () => void
   selectedCount: number
+  isActiveDrag: boolean
 }
 
 function formatDuration(ms: number): string {
@@ -22,6 +23,8 @@ export default function SortableTrackItem({
   track,
   isSelected,
   onToggleSelect,
+  selectedCount,
+  isActiveDrag,
 }: SortableTrackItemProps) {
   const {
     attributes,
@@ -78,15 +81,23 @@ export default function SortableTrackItem({
       </button>
 
       {/* Album art */}
-      {albumArt ? (
-        <img src={albumArt} alt="" className="w-12 h-12 sm:w-10 sm:h-10 rounded flex-shrink-0" />
-      ) : (
-        <div className="w-12 h-12 sm:w-10 sm:h-10 rounded bg-spotify-light-gray flex items-center justify-center flex-shrink-0">
-          <svg className="w-5 h-5 text-spotify-subdued" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-          </svg>
-        </div>
-      )}
+      <div className="relative flex-shrink-0">
+        {albumArt ? (
+          <img src={albumArt} alt="" className="w-12 h-12 sm:w-10 sm:h-10 rounded" />
+        ) : (
+          <div className="w-12 h-12 sm:w-10 sm:h-10 rounded bg-spotify-light-gray flex items-center justify-center">
+            <svg className="w-5 h-5 text-spotify-subdued" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+            </svg>
+          </div>
+        )}
+        {/* Multi-drag badge */}
+        {isActiveDrag && (
+          <div className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-spotify-green text-black text-xs font-bold rounded-full flex items-center justify-center">
+            +{selectedCount - 1}
+          </div>
+        )}
+      </div>
 
       {/* Track info */}
       <div className="flex-1 min-w-0">

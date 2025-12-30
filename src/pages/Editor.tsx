@@ -9,6 +9,7 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
+  DragStartEvent,
   DragEndEvent,
 } from '@dnd-kit/core'
 import {
@@ -33,6 +34,7 @@ export default function Editor() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [activeDragId, setActiveDragId] = useState<number | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -80,7 +82,12 @@ export default function Editor() {
     }
   }
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragId(Number(event.active.id))
+  }
+
   const handleDragEnd = (event: DragEndEvent) => {
+    setActiveDragId(null)
     const { active, over } = event
 
     if (!over || active.id === over.id) return
@@ -300,6 +307,7 @@ export default function Editor() {
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
@@ -316,6 +324,7 @@ export default function Editor() {
                   isSelected={selectedIndices.has(index)}
                   onToggleSelect={() => toggleSelect(index)}
                   selectedCount={selectedIndices.size}
+                  isActiveDrag={activeDragId === index && selectedIndices.has(index) && selectedIndices.size > 1}
                 />
               ))}
             </div>
