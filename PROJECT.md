@@ -173,11 +173,13 @@ src/
 
 ## Session Checkpoint (Dec 30, 2024)
 
-### Recently Completed
+### Completed This Session
 - Multi-drag badge: When dragging multiple selected tracks, shows "+X" badge on album art
-- Smooth transitions: Selection toolbar, Unsaved badge, and Save/Discard buttons now animate smoothly
+- Smooth transitions: Selection toolbar, Unsaved badge, and Save/Discard buttons animate smoothly (no more snapping)
 - Login flow fix: "Change Client ID" button now works correctly (navigates to Setup with `?edit=true`)
 - Setup page: Pre-fills existing client ID when editing, shows "Cancel" button to go back
+- Playlist cards: Changed hover icon from play to edit (pen icon) - less misleading
+- App logo: Changed from music note to pencil/edit icon to match app purpose
 
 ### Known Issues / Future Polish
 - Consider adding page transition animations (route changes)
