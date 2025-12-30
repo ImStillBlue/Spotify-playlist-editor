@@ -5,6 +5,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -40,6 +41,12 @@ export default function Editor() {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 150,
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -132,10 +139,6 @@ export default function Editor() {
     })
   }, [])
 
-  const selectAll = () => {
-    setSelectedIndices(new Set(tracks.map((_, i) => i)))
-  }
-
   const deselectAll = () => {
     setSelectedIndices(new Set())
   }
@@ -205,13 +208,13 @@ export default function Editor() {
   return (
     <div className="min-h-screen bg-spotify-black">
       {/* Header */}
-      <header className="sticky top-0 bg-gradient-to-b from-spotify-dark-gray to-spotify-black/95 backdrop-blur-sm z-10">
+      <header className="sticky top-0 bg-gradient-to-b from-spotify-dark-gray to-spotify-black/95 backdrop-blur-sm z-10 safe-area-top">
         <div className="max-w-3xl mx-auto px-4 py-3">
           {/* Top row */}
           <div className="flex items-center gap-3">
             <button
               onClick={handleBack}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 text-white active:bg-black/60 transition-colors flex-shrink-0"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -219,7 +222,7 @@ export default function Editor() {
             </button>
 
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold text-white truncate">
+              <h1 className="text-base sm:text-lg font-bold text-white truncate">
                 {playlist?.name}
               </h1>
               <p className="text-spotify-subdued text-xs">
@@ -237,14 +240,14 @@ export default function Editor() {
                 <button
                   onClick={handleDiscard}
                   disabled={saving}
-                  className="px-4 py-1.5 text-white text-sm hover:bg-white/10 rounded-full transition-colors"
+                  className="px-3 sm:px-4 py-2 text-white text-sm active:bg-white/10 rounded-full transition-colors"
                 >
                   Discard
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-5 py-1.5 bg-spotify-green hover:bg-spotify-green-dark text-black font-semibold rounded-full text-sm transition-colors disabled:opacity-50"
+                  className="px-4 sm:px-5 py-2 bg-spotify-green active:bg-spotify-green-dark text-black font-semibold rounded-full text-sm transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save'}
                 </button>
@@ -252,54 +255,48 @@ export default function Editor() {
             )}
           </div>
 
-          {/* Selection toolbar */}
+          {/* Selection toolbar - mobile optimized */}
           {selectedIndices.size > 0 && (
-            <div className="flex items-center gap-1 mt-3 py-2 px-3 bg-spotify-light-gray/50 rounded-lg">
-              <span className="text-white text-sm font-medium mr-2">
-                {selectedIndices.size} selected
-              </span>
-              <button
-                onClick={deselectAll}
-                className="px-3 py-1 text-xs text-spotify-subdued hover:text-white hover:bg-white/10 rounded-full transition-colors"
-              >
-                Clear
-              </button>
-              <div className="w-px h-4 bg-spotify-lighter-gray mx-1" />
-              <button
-                onClick={moveToTop}
-                className="px-3 py-1 text-xs text-spotify-subdued hover:text-white hover:bg-white/10 rounded-full transition-colors"
-              >
-                Move to Top
-              </button>
-              <button
-                onClick={moveToBottom}
-                className="px-3 py-1 text-xs text-spotify-subdued hover:text-white hover:bg-white/10 rounded-full transition-colors"
-              >
-                Move to Bottom
-              </button>
-              <div className="w-px h-4 bg-spotify-lighter-gray mx-1" />
-              <button
-                onClick={removeSelected}
-                className="px-3 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition-colors"
-              >
-                Remove
-              </button>
+            <div className="mt-3 py-2 px-3 bg-spotify-light-gray/50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-white text-sm font-medium">
+                  {selectedIndices.size} selected
+                </span>
+                <button
+                  onClick={deselectAll}
+                  className="px-3 py-1.5 text-sm text-spotify-subdued active:text-white active:bg-white/10 rounded-full transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={moveToTop}
+                  className="flex-1 px-3 py-2.5 text-sm text-white bg-white/10 active:bg-white/20 rounded-lg transition-colors"
+                >
+                  Move to Top
+                </button>
+                <button
+                  onClick={moveToBottom}
+                  className="flex-1 px-3 py-2.5 text-sm text-white bg-white/10 active:bg-white/20 rounded-lg transition-colors"
+                >
+                  Move to Bottom
+                </button>
+                <button
+                  onClick={removeSelected}
+                  className="px-4 py-2.5 text-sm text-red-400 bg-red-500/10 active:bg-red-500/20 rounded-lg transition-colors"
+                >
+                  Remove
+                </button>
+              </div>
             </div>
           )}
 
-          {selectedIndices.size === 0 && tracks.length > 0 && (
-            <button
-              onClick={selectAll}
-              className="mt-2 text-spotify-subdued hover:text-white text-xs transition-colors"
-            >
-              Select all
-            </button>
-          )}
         </div>
       </header>
 
       {/* Track list */}
-      <main className="max-w-3xl mx-auto px-4 pb-8">
+      <main className="max-w-3xl mx-auto px-2 sm:px-4 pb-8 safe-area-bottom">
         {error && (
           <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4">
             <p className="text-red-400 text-sm">{error}</p>

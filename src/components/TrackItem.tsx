@@ -30,19 +30,19 @@ export default function TrackItem({
   return (
     <div
       className={`
-        flex items-center gap-3 px-2 py-2 rounded-md
+        flex items-center gap-3 px-3 py-3 sm:py-2 rounded-lg
         ${isDragOverlay ? 'bg-spotify-light-gray shadow-2xl shadow-black/50 border border-white/10' : ''}
         ${isSelected && !isDragOverlay ? 'bg-white/10' : ''}
       `}
     >
       {/* Checkbox placeholder for alignment */}
-      <div className="w-4 h-4 flex-shrink-0" />
+      <div className="w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0" />
 
       {/* Album art */}
       {albumArt ? (
-        <img src={albumArt} alt="" className="w-10 h-10 rounded flex-shrink-0" />
+        <img src={albumArt} alt="" className="w-12 h-12 sm:w-10 sm:h-10 rounded flex-shrink-0" />
       ) : (
-        <div className="w-10 h-10 rounded bg-spotify-light-gray flex items-center justify-center flex-shrink-0">
+        <div className="w-12 h-12 sm:w-10 sm:h-10 rounded bg-spotify-light-gray flex items-center justify-center flex-shrink-0">
           <svg className="w-5 h-5 text-spotify-subdued" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
           </svg>
@@ -58,19 +58,19 @@ export default function TrackItem({
       </div>
 
       {/* Duration */}
-      <span className="text-spotify-subdued text-xs flex-shrink-0 tabular-nums">
+      <span className="text-spotify-subdued text-xs flex-shrink-0 tabular-nums hidden xs:block">
         {formatDuration(duration_ms)}
       </span>
 
       {/* Selected count badge */}
       {isDragOverlay && isSelected && selectedCount > 1 && (
-        <span className="bg-spotify-green text-black text-xs font-bold px-2 py-0.5 rounded-full">
+        <span className="bg-spotify-green text-black text-xs font-bold px-2.5 py-1 rounded-full">
           {selectedCount}
         </span>
       )}
 
       {/* Drag handle placeholder */}
-      {!isDragOverlay && <div className="w-6 flex-shrink-0" />}
+      {!isDragOverlay && <div className="w-9 flex-shrink-0" />}
     </div>
   )
 }
