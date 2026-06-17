@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { isLoggedIn, logout } from '../services/auth'
-import { getUserPlaylists, getCurrentUser } from '../services/spotifyApi'
+import { getUserPlaylists, getCurrentUser, getLikedSongsTotal } from '../services/spotifyApi'
 import { Playlist, SpotifyUser } from '../types/spotify'
 
 export default function Playlists() {
   const navigate = useNavigate()
   const [playlists, setPlaylists] = useState<Playlist[]>([])
+  const [likedCount, setLikedCount] = useState<number | null>(null)
   const [user, setUser] = useState<SpotifyUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -34,6 +35,11 @@ export default function Playlists() {
         (p) => p.owner.id === userData.id || p.collaborative
       )
       setPlaylists(editable)
+
+      // Liked Songs count loads separately so a failure here never blocks the page
+      getLikedSongsTotal()
+        .then(setLikedCount)
+        .catch(() => setLikedCount(null))
     } catch (err) {
       console.error('Failed to load playlists:', err)
       setError('Failed to load playlists')
@@ -94,6 +100,28 @@ export default function Playlists() {
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 safe-area-bottom">
+        {/* Liked Songs - distinct from regular playlists (delete-only editor) */}
+        <button
+          onClick={() => navigate('/liked')}
+          className="group w-full flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 p-3 sm:p-4 rounded-lg bg-gradient-to-r from-indigo-700 via-purple-700 to-purple-500 active:from-indigo-800 active:to-purple-600 transition-all duration-200 text-left shadow-lg"
+        >
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-md bg-white/15 flex items-center justify-center flex-shrink-0">
+            <svg className="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-white font-bold text-base sm:text-lg">Liked Songs</h2>
+            <p className="text-white/80 text-xs sm:text-sm">
+              {likedCount !== null ? `${likedCount} song${likedCount !== 1 ? 's' : ''} · ` : ''}
+              Select &amp; remove songs
+            </p>
+          </div>
+          <svg className="w-5 h-5 text-white/70 flex-shrink-0 group-active:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
         {/* Page title */}
         <div className="mb-4 sm:mb-6">
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">

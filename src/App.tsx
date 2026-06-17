@@ -3,6 +3,7 @@ import Setup from './pages/Setup'
 import Login from './pages/Login'
 import Playlists from './pages/Playlists'
 import Editor from './pages/Editor'
+import LikedSongs from './pages/LikedSongs'
 import Callback from './pages/Callback'
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/callback" element={<Callback />} />
         <Route path="/playlists" element={<Playlists />} />
+        <Route path="/liked" element={<LikedSongs />} />
         <Route path="/editor/:playlistId" element={<Editor />} />
       </Routes>
     </BrowserRouter>

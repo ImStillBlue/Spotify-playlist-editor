@@ -14,6 +14,7 @@ export const SPOTIFY_CONFIG = {
     'playlist-modify-private',
     'playlist-modify-public',
     'user-library-read',
+    'user-library-modify',
     'user-read-private',
   ],
 }

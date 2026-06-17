@@ -16,7 +16,11 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}): Promi
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}))
-    throw new Error(error.error?.message || `API error: ${response.status}`)
+    const err = new Error(
+      error.error?.message || `API error: ${response.status}`
+    ) as Error & { status?: number }
+    err.status = response.status
+    throw err
   }
 
   return response
@@ -119,6 +123,54 @@ export async function replacePlaylistTracks(
 
     // Small delay to avoid rate limiting
     if (i + 100 < uris.length) {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+  }
+}
+
+// --- Liked Songs (Saved Tracks) ---
+// Note: the Saved Tracks library cannot be reordered via the API — it is always
+// returned in date-added order — so the Liked Songs view only supports removal.
+
+export async function getLikedSongsTotal(): Promise<number> {
+  const response = await fetchWithAuth('/me/tracks?limit=1')
+  const data = await response.json()
+  return data.total
+}
+
+export async function getLikedSongs(): Promise<PlaylistTrack[]> {
+  const tracks: PlaylistTrack[] = []
+  let offset = 0
+  const limit = 50
+
+  while (true) {
+    const response = await fetchWithAuth(`/me/tracks?limit=${limit}&offset=${offset}`)
+    const data = await response.json()
+
+    tracks.push(...data.items)
+
+    if (data.items.length < limit || tracks.length >= data.total) {
+      break
+    }
+    offset += limit
+
+    // Small delay to avoid rate limiting
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+
+  return tracks
+}
+
+export async function removeSavedTracks(ids: string[]): Promise<void> {
+  // DELETE /me/tracks takes track IDs (not URIs), max 50 per request
+  for (let i = 0; i < ids.length; i += 50) {
+    const batch = ids.slice(i, i + 50)
+    await fetchWithAuth('/me/tracks', {
+      method: 'DELETE',
+      body: JSON.stringify({ ids: batch }),
+    })
+
+    if (i + 50 < ids.length) {
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
   }
