@@ -1,8 +1,24 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  DndContext,
+  closestCenter,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable'
 import { isLoggedIn, logout } from '../services/auth'
 import { getUserPlaylists, getCurrentUser, getLikedSongsTotal } from '../services/spotifyApi'
 import { Playlist, SpotifyUser } from '../types/spotify'
+import SortablePlaylistCard from '../components/SortablePlaylistCard'
+import {
+  getSavedPlaylistOrder,
+  savePlaylistOrder,
+  applySavedOrder,
+} from '../utils/playlistOrder'
 
 export default function Playlists() {
   const navigate = useNavigate()
@@ -11,6 +27,21 @@ export default function Playlists() {
   const [user, setUser] = useState<SpotifyUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  // Tracks whether a drag just happened so the click that follows a drop
+  // doesn't also open the playlist editor.
+  const justDraggedRef = useRef(false)
+
+  const sensors = useSensors(
+    // Mouse: small movement starts a drag; a plain click still opens the playlist
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    // Touch: press-and-hold to drag, so taps still open and swipes still scroll
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    })
+  )
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -34,7 +65,7 @@ export default function Playlists() {
       const editable = playlistData.filter(
         (p) => p.owner.id === userData.id || p.collaborative
       )
-      setPlaylists(editable)
+      setPlaylists(applySavedOrder(editable, getSavedPlaylistOrder()))
 
       // Liked Songs count loads separately so a failure here never blocks the page
       getLikedSongsTotal()
@@ -51,6 +82,33 @@ export default function Playlists() {
   const handleLogout = () => {
     logout()
     navigate('/login')
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    // Suppress the click that the browser fires right after a drop
+    justDraggedRef.current = true
+    setTimeout(() => {
+      justDraggedRef.current = false
+    }, 0)
+
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = playlists.findIndex((p) => p.id === active.id)
+    const newIndex = playlists.findIndex((p) => p.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = arrayMove(playlists, oldIndex, newIndex)
+    setPlaylists(reordered)
+    savePlaylistOrder(reordered.map((p) => p.id))
+  }
+
+  const handleOpen = (playlistId: string) => {
+    if (justDraggedRef.current) {
+      justDraggedRef.current = false
+      return
+    }
+    navigate(`/editor/${playlistId}`)
   }
 
   if (loading) {
@@ -129,6 +187,7 @@ export default function Playlists() {
           </h1>
           <p className="text-spotify-subdued text-xs sm:text-sm mt-1">
             {playlists.length} editable playlist{playlists.length !== 1 ? 's' : ''}
+            {playlists.length > 1 && ' · Drag to reorder'}
           </p>
         </div>
 
@@ -151,56 +210,26 @@ export default function Playlists() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-            {playlists.map((playlist) => (
-              <button
-                key={playlist.id}
-                onClick={() => navigate(`/editor/${playlist.id}`)}
-                className="group bg-spotify-dark-gray/50 active:bg-spotify-light-gray/50 rounded-md sm:rounded-lg p-3 sm:p-4 transition-all duration-200 text-left"
-              >
-                {/* Playlist cover */}
-                <div className="relative aspect-square mb-2 sm:mb-4">
-                  {playlist.images[0] ? (
-                    <img
-                      src={playlist.images[0].url}
-                      alt=""
-                      className="w-full h-full object-cover rounded-md shadow-lg"
-                    />
-                  ) : (
-                    <div className="w-full h-full rounded-md bg-spotify-light-gray flex items-center justify-center shadow-lg">
-                      <svg
-                        className="w-8 sm:w-12 h-8 sm:h-12 text-spotify-subdued"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                      </svg>
-                    </div>
-                  )}
-
-                  {/* Edit button overlay - hidden on touch devices */}
-                  <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 hidden sm:block">
-                    <div className="w-10 h-10 bg-spotify-green rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
-                      <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Playlist info */}
-                <h3 className="text-white font-medium text-xs sm:text-sm truncate mb-0.5 sm:mb-1">
-                  {playlist.name}
-                </h3>
-                <p className="text-spotify-subdued text-[10px] sm:text-xs truncate">
-                  {playlist.tracks.total} tracks
-                  {playlist.collaborative && (
-                    <span className="text-spotify-green"> · Collab</span>
-                  )}
-                </p>
-              </button>
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={playlists.map((p) => p.id)}
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+                {playlists.map((playlist) => (
+                  <SortablePlaylistCard
+                    key={playlist.id}
+                    playlist={playlist}
+                    onOpen={() => handleOpen(playlist.id)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </main>
     </div>
