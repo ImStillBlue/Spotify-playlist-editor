@@ -1,5 +1,5 @@
 import { SPOTIFY_CONFIG } from '../config/spotify'
-import { getValidAccessToken } from './auth'
+import { getValidAccessToken, clearTokenData } from './auth'
 import { Playlist, PlaylistItem, SavedTrack, SpotifyUser } from '../types/spotify'
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}): Promise<Response> {
@@ -16,6 +16,12 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}): Promi
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}))
+    if (response.status === 401) {
+      // The token was revoked or Spotify invalidated the session. Drop it so the
+      // route guard sends the user back through login instead of failing forever.
+      clearTokenData()
+      throw new Error('Your Spotify session expired. Please log in again.')
+    }
     const err = new Error(
       error.error?.message || `API error: ${response.status}`
     ) as Error & { status?: number }
@@ -175,26 +181,6 @@ export async function removeSavedTracks(uris: string[]): Promise<void> {
     )
 
     if (i + 40 < uris.length) {
-      await new Promise((resolve) => setTimeout(resolve, 100))
-    }
-  }
-}
-
-export async function removePlaylistItems(
-  playlistId: string,
-  uris: string[]
-): Promise<void> {
-  // Remove in batches of 100
-  for (let i = 0; i < uris.length; i += 100) {
-    const batch = uris.slice(i, i + 100)
-    await fetchWithAuth(`/playlists/${playlistId}/items`, {
-      method: 'DELETE',
-      body: JSON.stringify({
-        items: batch.map((uri) => ({ uri })),
-      }),
-    })
-
-    if (i + 100 < uris.length) {
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
   }

@@ -10,6 +10,12 @@ import {
 
 const TOKEN_STORAGE_KEY = 'spotify_token_data'
 
+// Spotify rotates the refresh token on every exchange, so two concurrent
+// refreshes race and the loser invalidates the winner's token. Screens fire
+// several API calls at once (the playlist screen issues three in parallel), so
+// the in-flight exchange is shared instead of repeated.
+let refreshInFlight: Promise<TokenData> | null = null
+
 export async function initiateLogin(): Promise<void> {
   const clientId = getClientId()
   if (!clientId) {
@@ -146,15 +152,22 @@ export function isTokenExpired(): boolean {
 }
 
 export async function getValidAccessToken(): Promise<string> {
-  if (isTokenExpired()) {
-    const newToken = await refreshAccessToken()
-    return newToken.access_token
-  }
   const tokenData = getTokenData()
   if (!tokenData) {
     throw new Error('Not logged in')
   }
-  return tokenData.access_token
+  if (!isTokenExpired()) {
+    return tokenData.access_token
+  }
+
+  if (!refreshInFlight) {
+    refreshInFlight = refreshAccessToken().finally(() => {
+      refreshInFlight = null
+    })
+  }
+
+  const refreshed = await refreshInFlight
+  return refreshed.access_token
 }
 
 export function logout(): void {
