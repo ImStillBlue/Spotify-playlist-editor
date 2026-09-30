@@ -27,10 +27,6 @@ export function setClientId(clientId: string): void {
   localStorage.setItem(STORAGE_KEY, clientId)
 }
 
-export function clearClientId(): void {
-  localStorage.removeItem(STORAGE_KEY)
-}
-
 export function hasClientId(): boolean {
   return !!getClientId()
 }
