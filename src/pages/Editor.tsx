@@ -19,17 +19,17 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { isLoggedIn } from '../services/auth'
-import { getPlaylist, replacePlaylistTracks } from '../services/spotifyApi'
-import { PlaylistDetails, PlaylistTrack } from '../types/spotify'
+import { getPlaylist, replacePlaylistItems } from '../services/spotifyApi'
+import { Playlist, PlaylistItem } from '../types/spotify'
 import SortableTrackItem from '../components/SortableTrackItem'
 
 export default function Editor() {
   const navigate = useNavigate()
   const { playlistId } = useParams<{ playlistId: string }>()
 
-  const [playlist, setPlaylist] = useState<PlaylistDetails | null>(null)
-  const [tracks, setTracks] = useState<PlaylistTrack[]>([])
-  const [originalTracks, setOriginalTracks] = useState<PlaylistTrack[]>([])
+  const [playlist, setPlaylist] = useState<Playlist | null>(null)
+  const [tracks, setTracks] = useState<PlaylistItem[]>([])
+  const [originalTracks, setOriginalTracks] = useState<PlaylistItem[]>([])
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -53,7 +53,7 @@ export default function Editor() {
     })
   )
 
-  const hasChanges = JSON.stringify(tracks.map(t => t.track?.uri)) !== JSON.stringify(originalTracks.map(t => t.track?.uri))
+  const hasChanges = JSON.stringify(tracks.map(t => t.item?.uri)) !== JSON.stringify(originalTracks.map(t => t.item?.uri))
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -71,7 +71,9 @@ export default function Editor() {
       setLoading(true)
       const data = await getPlaylist(playlistId)
       setPlaylist(data)
-      const validTracks = data.tracks.items.filter((t) => t.track !== null)
+      // Since Feb 2026 the contents live under `items`, and are only returned
+      // for playlists the user owns or collaborates on.
+      const validTracks = (data.items?.items ?? []).filter((t) => t.item !== null)
       setTracks(validTracks)
       setOriginalTracks(validTracks)
     } catch (err) {
@@ -172,8 +174,8 @@ export default function Editor() {
     if (!playlistId || !hasChanges) return
     try {
       setSaving(true)
-      const uris = tracks.map((t) => t.track!.uri)
-      await replacePlaylistTracks(playlistId, uris)
+      const uris = tracks.map((t) => t.item!.uri)
+      await replacePlaylistItems(playlistId, uris)
       setOriginalTracks([...tracks])
       setSelectedIndices(new Set())
     } catch (err) {
@@ -202,6 +204,25 @@ export default function Editor() {
     return (
       <div className="min-h-screen bg-spotify-black flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-spotify-green border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  // Spotify only returns playlist contents for playlists the current user owns
+  // or collaborates on — for anything else the `items` object is absent.
+  if (playlist && !playlist.items) {
+    return (
+      <div className="min-h-screen bg-spotify-black flex flex-col items-center justify-center p-4">
+        <p className="text-spotify-subdued text-center mb-4">
+          This playlist's contents aren't available to your account. Only
+          playlists you own or collaborate on can be edited.
+        </p>
+        <button
+          onClick={() => navigate('/playlists')}
+          className="px-5 py-2 bg-spotify-green active:bg-spotify-green-dark text-black font-semibold rounded-full text-sm transition-colors"
+        >
+          Back to playlists
+        </button>
       </div>
     )
   }
@@ -318,9 +339,9 @@ export default function Editor() {
             <div className="divide-y divide-spotify-light-gray/30">
               {tracks.map((track, index) => (
                 <SortableTrackItem
-                  key={`${track.track?.id}-${index}`}
+                  key={`${track.item?.id}-${index}`}
                   id={index}
-                  track={track}
+                  item={track}
                   index={index}
                   isSelected={selectedIndices.has(index)}
                   onToggleSelect={() => toggleSelect(index)}

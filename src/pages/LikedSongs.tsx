@@ -2,14 +2,14 @@ import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { isLoggedIn } from '../services/auth'
 import { getLikedSongs, removeSavedTracks } from '../services/spotifyApi'
-import { PlaylistTrack } from '../types/spotify'
+import { SavedTrack } from '../types/spotify'
 import LikedTrackItem from '../components/LikedTrackItem'
 
 export default function LikedSongs() {
   const navigate = useNavigate()
 
-  const [tracks, setTracks] = useState<PlaylistTrack[]>([])
-  const [originalTracks, setOriginalTracks] = useState<PlaylistTrack[]>([])
+  const [tracks, setTracks] = useState<SavedTrack[]>([])
+  const [originalTracks, setOriginalTracks] = useState<SavedTrack[]>([])
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -75,16 +75,16 @@ export default function LikedSongs() {
   const handleSave = async () => {
     if (!hasChanges) return
 
-    const currentIds = new Set(tracks.map((t) => t.track!.id))
-    const removedIds = originalTracks
-      .filter((t) => t.track && !currentIds.has(t.track.id))
-      .map((t) => t.track!.id)
+    const currentUris = new Set(tracks.map((t) => t.track!.uri))
+    const removedUris = originalTracks
+      .filter((t) => t.track && !currentUris.has(t.track.uri))
+      .map((t) => t.track!.uri)
 
-    if (removedIds.length === 0) return
+    if (removedUris.length === 0) return
 
     if (
       !confirm(
-        `Remove ${removedIds.length} song${removedIds.length !== 1 ? 's' : ''} from your Liked Songs? This can't be undone.`
+        `Remove ${removedUris.length} song${removedUris.length !== 1 ? 's' : ''} from your Liked Songs? This can't be undone.`
       )
     ) {
       return
@@ -93,7 +93,7 @@ export default function LikedSongs() {
     try {
       setSaving(true)
       setError('')
-      await removeSavedTracks(removedIds)
+      await removeSavedTracks(removedUris)
       setOriginalTracks([...tracks])
       setSelectedIndices(new Set())
     } catch (err) {

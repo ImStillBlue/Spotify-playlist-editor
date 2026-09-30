@@ -1,7 +1,7 @@
-import { PlaylistTrack } from '../types/spotify'
+import { SavedTrack } from '../types/spotify'
 
 interface LikedTrackItemProps {
-  track: PlaylistTrack
+  track: SavedTrack
   isSelected: boolean
   onToggleSelect: () => void
 }

@@ -79,7 +79,7 @@ export default function SortablePlaylistCard({
         {playlist.name}
       </h3>
       <p className="text-spotify-subdued text-[10px] sm:text-xs truncate">
-        {playlist.tracks.total} tracks
+        {playlist.items?.total ?? 0} tracks
         {playlist.collaborative && (
           <span className="text-spotify-green"> · Collab</span>
         )}

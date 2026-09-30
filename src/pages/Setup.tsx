@@ -61,8 +61,17 @@ export default function Setup() {
 
           <p className="text-spotify-subdued mb-4">
             Due to Spotify API restrictions, you need to create your own Spotify Developer app.
-            This is a one-time setup that takes about 2 minutes.
+            This is a one-time setup that takes about 2 minutes. The account that creates the
+            app must have Spotify Premium.
           </p>
+
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4 text-sm">
+            <p className="text-yellow-300">
+              Since Spotify's March 2026 update, a Development Mode app allows one client ID
+              per developer and only 5 authorized users. Use your own client ID rather than the
+              pre-filled one, or the shared limit fills up quickly.
+            </p>
+          </div>
 
           <div className="bg-spotify-light-gray rounded-lg p-4 mb-6">
             <h3 className="text-white font-medium mb-3">Instructions:</h3>

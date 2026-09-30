@@ -1,10 +1,10 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { PlaylistTrack } from '../types/spotify'
+import { PlaylistItem } from '../types/spotify'
 
 interface SortableTrackItemProps {
   id: number
-  track: PlaylistTrack
+  item: PlaylistItem
   index: number
   isSelected: boolean
   onToggleSelect: () => void
@@ -20,7 +20,7 @@ function formatDuration(ms: number): string {
 
 export default function SortableTrackItem({
   id,
-  track,
+  item,
   isSelected,
   onToggleSelect,
   selectedCount,
@@ -44,9 +44,9 @@ export default function SortableTrackItem({
     boxShadow: isDragging ? '0 10px 40px rgba(0,0,0,0.5)' : undefined,
   }
 
-  if (!track.track) return null
+  if (!item.item) return null
 
-  const { name, artists, album, duration_ms } = track.track
+  const { name, artists, album, duration_ms } = item.item
   const artistNames = artists.map((a) => a.name).join(', ')
   const albumArt = album.images[album.images.length - 1]?.url
 

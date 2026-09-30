@@ -60,6 +60,8 @@ This app lets you **select multiple songs** and **drag them all at once** to the
 
 Due to Spotify's API restrictions, each user needs to create their own Spotify Developer app. This is a one-time setup (~2 minutes).
 
+> **Heads up:** as of Spotify's March 2026 developer-access update, a Development Mode app requires a **Spotify Premium** account for its owner, is limited to **one client ID per developer** and **5 authorized users**. Create your own client ID so the 5-user cap doesn't fill up. See the [migration guide](https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide).
+
 ### Quick Start
 
 1. **Go to** [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
@@ -124,9 +126,9 @@ npm run build
 
 ## Why "Bring Your Own Key"?
 
-Spotify limits apps in "Development Mode" to 25 users, and getting Extended Quota requires being an organization. By using your own API credentials:
+Spotify limits apps in "Development Mode" to 1 client ID and 5 users, the owner needs Spotify Premium, and getting Extended Quota requires being an organization. By using your own API credentials:
 
-- **No user limits** — Your app, your quota
+- **Your own client ID** — no shared 5-user cap to contend with
 - **Privacy** — Your credentials never leave your browser
 - **No server costs** — Runs entirely client-side
 

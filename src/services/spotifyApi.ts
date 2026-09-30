@@ -1,6 +1,6 @@
 import { SPOTIFY_CONFIG } from '../config/spotify'
 import { getValidAccessToken } from './auth'
-import { Playlist, PlaylistDetails, PlaylistTrack, SpotifyUser } from '../types/spotify'
+import { Playlist, PlaylistItem, SavedTrack, SpotifyUser } from '../types/spotify'
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}): Promise<Response> {
   const token = await getValidAccessToken()
@@ -51,34 +51,37 @@ export async function getUserPlaylists(): Promise<Playlist[]> {
   return playlists
 }
 
-export async function getPlaylist(playlistId: string): Promise<PlaylistDetails> {
+export async function getPlaylist(playlistId: string): Promise<Playlist> {
   const response = await fetchWithAuth(`/playlists/${playlistId}`)
-  const playlist = await response.json()
+  const playlist: Playlist = await response.json()
 
-  // If more than 100 tracks, fetch remaining
-  if (playlist.tracks.total > 100) {
-    const remainingTracks = await fetchAllPlaylistTracks(playlistId, 100)
-    playlist.tracks.items = [...playlist.tracks.items, ...remainingTracks]
+  // Playlist contents are paged at 100 items. `items` (and the contents inside
+  // it) is absent entirely for playlists the user neither owns nor collaborates
+  // on, in which case there is nothing to page through.
+  const page = playlist.items
+  if (page?.items && page.items.length < page.total) {
+    const remainingItems = await fetchAllPlaylistItems(playlistId, page.items.length)
+    page.items = [...page.items, ...remainingItems]
   }
 
   return playlist
 }
 
-async function fetchAllPlaylistTracks(
+async function fetchAllPlaylistItems(
   playlistId: string,
   startOffset: number
-): Promise<PlaylistTrack[]> {
-  const tracks: PlaylistTrack[] = []
+): Promise<PlaylistItem[]> {
+  const items: PlaylistItem[] = []
   let offset = startOffset
   const limit = 100
 
   while (true) {
     const response = await fetchWithAuth(
-      `/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}`
+      `/playlists/${playlistId}/items?limit=${limit}&offset=${offset}`
     )
     const data = await response.json()
 
-    tracks.push(...data.items)
+    items.push(...data.items)
 
     if (data.items.length < limit) {
       break
@@ -89,18 +92,18 @@ async function fetchAllPlaylistTracks(
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
 
-  return tracks
+  return items
 }
 
-export async function replacePlaylistTracks(
+export async function replacePlaylistItems(
   playlistId: string,
   uris: string[]
 ): Promise<void> {
-  // Spotify API limits to 100 tracks per request
+  // Spotify API limits to 100 items per request
   // For replace, we need to clear first then add in batches
 
   if (uris.length <= 100) {
-    await fetchWithAuth(`/playlists/${playlistId}/tracks`, {
+    await fetchWithAuth(`/playlists/${playlistId}/items`, {
       method: 'PUT',
       body: JSON.stringify({ uris }),
     })
@@ -108,15 +111,15 @@ export async function replacePlaylistTracks(
   }
 
   // Clear playlist first
-  await fetchWithAuth(`/playlists/${playlistId}/tracks`, {
+  await fetchWithAuth(`/playlists/${playlistId}/items`, {
     method: 'PUT',
     body: JSON.stringify({ uris: [] }),
   })
 
-  // Add tracks in batches
+  // Add items in batches
   for (let i = 0; i < uris.length; i += 100) {
     const batch = uris.slice(i, i + 100)
-    await fetchWithAuth(`/playlists/${playlistId}/tracks`, {
+    await fetchWithAuth(`/playlists/${playlistId}/items`, {
       method: 'POST',
       body: JSON.stringify({ uris: batch }),
     })
@@ -138,8 +141,8 @@ export async function getLikedSongsTotal(): Promise<number> {
   return data.total
 }
 
-export async function getLikedSongs(): Promise<PlaylistTrack[]> {
-  const tracks: PlaylistTrack[] = []
+export async function getLikedSongs(): Promise<SavedTrack[]> {
+  const tracks: SavedTrack[] = []
   let offset = 0
   const limit = 50
 
@@ -161,32 +164,33 @@ export async function getLikedSongs(): Promise<PlaylistTrack[]> {
   return tracks
 }
 
-export async function removeSavedTracks(ids: string[]): Promise<void> {
-  // DELETE /me/tracks takes track IDs (not URIs), max 50 per request
-  for (let i = 0; i < ids.length; i += 50) {
-    const batch = ids.slice(i, i + 50)
-    await fetchWithAuth('/me/tracks', {
-      method: 'DELETE',
-      body: JSON.stringify({ ids: batch }),
-    })
+export async function removeSavedTracks(uris: string[]): Promise<void> {
+  // DELETE /me/library takes Spotify URIs as a comma-separated list, max 40
+  // per request. The entity-specific DELETE /me/tracks was removed in Feb 2026.
+  for (let i = 0; i < uris.length; i += 40) {
+    const batch = uris.slice(i, i + 40)
+    await fetchWithAuth(
+      `/me/library?uris=${encodeURIComponent(batch.join(','))}`,
+      { method: 'DELETE' }
+    )
 
-    if (i + 50 < ids.length) {
+    if (i + 40 < uris.length) {
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
   }
 }
 
-export async function removeTracksFromPlaylist(
+export async function removePlaylistItems(
   playlistId: string,
   uris: string[]
 ): Promise<void> {
   // Remove in batches of 100
   for (let i = 0; i < uris.length; i += 100) {
     const batch = uris.slice(i, i + 100)
-    await fetchWithAuth(`/playlists/${playlistId}/tracks`, {
+    await fetchWithAuth(`/playlists/${playlistId}/items`, {
       method: 'DELETE',
       body: JSON.stringify({
-        tracks: batch.map((uri) => ({ uri })),
+        items: batch.map((uri) => ({ uri })),
       }),
     })
 

@@ -109,7 +109,10 @@ src/
 ### API
 - All calls batched (100 items per request)
 - 100ms delay between batches for rate limiting
-- Uses `PUT /playlists/{id}/tracks` for reordering
+- Uses `PUT /playlists/{id}/items` for reordering
+- Since Spotify's February 2026 update: playlist endpoints are `/items` (not
+  `/tracks`), the response field is `items.items[].item` (not `tracks.tracks[].track`),
+  and library writes go through `DELETE /me/library` with Spotify URIs
 
 ---
 
@@ -158,7 +161,10 @@ src/
 
 ## Known Issues / Considerations
 
-1. **Spotify Dev App Limitation:** Development mode limited to 25 users. Using BYOK model as workaround.
+1. **Spotify Dev App Limitation:** Development mode now requires a Premium
+   subscription for the app owner, allows only one client ID per developer, and
+   caps each client ID at 5 authorized users. Using your own client ID (BYOK) is
+   the workaround.
 
 2. **Large Playlists:** Playlists with 1000+ tracks may feel slow during initial load.
 

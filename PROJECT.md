@@ -103,13 +103,24 @@ Built as a static site (GitHub Pages) using the "Bring Your Own Key" model - eac
 - `playlist-modify-private`
 - `playlist-modify-public`
 - `user-library-read`
+- `user-library-modify`
 - `user-read-private`
 
 **Key Endpoints:**
 - `GET /me/playlists` - List user's playlists
-- `GET /playlists/{id}/tracks` - Get playlist tracks
-- `PUT /playlists/{id}/tracks` - Replace all tracks (reorder)
-- `DELETE /playlists/{id}/tracks` - Remove tracks
+- `GET /me/tracks` - List liked songs
+- `DELETE /me/library` - Remove saved items by URI (replaced `DELETE /me/tracks`)
+- `GET /playlists/{id}/items` - Get playlist items
+- `PUT /playlists/{id}/items` - Replace all items (reorder)
+- `POST /playlists/{id}/items` - Append items
+- `DELETE /playlists/{id}/items` - Remove items
+
+**February 2026 Web API update:** the playlist track endpoints were renamed
+`/playlists/{id}/tracks` -> `/playlists/{id}/items`, the playlist response field
+`tracks` -> `items` (`items.items[].track` -> `items.items[].item`), and the
+entity-specific library endpoints were replaced by `PUT/DELETE /me/library`.
+Batch fetch, browse, markets, and other-user endpoints were removed outright.
+See https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide
 
 **Rate Limiting:** 100ms delay between batched calls
 
@@ -118,9 +129,10 @@ Built as a static site (GitHub Pages) using the "Bring Your Own Key" model - eac
 ## BYOK (Bring Your Own Key) Model
 
 ### Why BYOK?
-- Spotify limits Development Mode apps to 25 users
+- Development Mode apps now allow 1 client ID per developer and 5 authorized
+  users, and the owner must have Spotify Premium (changed March 9, 2026)
 - Extended quota requires organization approval (not available to individuals)
-- BYOK means unlimited users, no approval needed
+- BYOK means your own client ID, so the 5-user cap doesn't apply to your app
 
 ### User Setup Flow
 1. User visits app for first time
