@@ -3,6 +3,11 @@ node_modules
 
 # Build output
 dist
+tsconfig.tsbuildinfo
+
+# Agent tooling scratch (local session state, receipts, mailbox)
+.omo/
+.claude/settings.local.json
 
 # Editor directories and files
 .vscode/*
