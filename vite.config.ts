@@ -20,6 +20,29 @@ const readCert = (name: string) => {
 const key = readCert('localhost.key')
 const cert = readCert('localhost.pem')
 
+// The leaf carries a DNS:localhost SAN purely so a stray localhost tab completes
+// TLS and can be redirected to the canonical origin. Without it the browser
+// hard-fails on chrome-error:// and the redirect never runs. The cost is that
+// Vite prints one "Local:" line per DNS SAN, so the startup banner would
+// advertise localhost as if it were usable. Dropping that line keeps the one
+// supported URL on screen; the SAN stays.
+function hideUnusableUrlFromBanner(): Plugin {
+  return {
+    name: 'hide-unusable-url-from-banner',
+    apply: 'serve',
+    configureServer(server) {
+      const logger = server.config.logger
+      const info = logger.info.bind(logger)
+      logger.info = (msg, options) => {
+        if (typeof msg === 'string' && /https?:\/\/[^/\s]*localhost/.test(msg)) {
+          return
+        }
+        info(msg, options)
+      }
+    },
+  }
+}
+
 // Spotify rejects the `localhost` hostname in redirect URIs, so a page served
 // there can never finish a login. Left alone it is worse than a dead end: the
 // browser gives it separate localStorage, so the client ID and token appear to
@@ -49,7 +72,7 @@ function redirectLocalhostToLoopback(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), redirectLocalhostToLoopback()],
+  plugins: [react(), redirectLocalhostToLoopback(), hideUnusableUrlFromBanner()],
   base: '/Spotify-playlist-editor/',
   server: {
     // Bind the explicit loopback IP rather than a hostname, so the origin the

@@ -26,9 +26,13 @@ openssl req -x509 -newkey rsa:2048 -sha256 -days "$DAYS" -nodes \
 openssl req -newkey rsa:2048 -nodes -keyout localhost.key -out localhost.csr \
   -subj '/CN=localhost'
 
-# The DNS:localhost SAN is not there to make localhost usable: Spotify rejects
-# that hostname in redirect URIs, and the dev server redirects it to 127.0.0.1.
-# It only keeps the TLS handshake quiet during that redirect.
+# The DNS:localhost SAN is not there to make localhost a supported origin:
+# Spotify rejects that hostname in redirect URIs. It earns its place because
+# Vite prints one "Local:" line per DNS SAN in the certificate, so dropping it
+# removes the duplicate URL from `npm run dev` startup output. It also has to
+# stay, or a stray localhost tab hits a certificate warning before the dev
+# server can redirect it to 127.0.0.1. So the extra line is the price of a
+# clean failure on the wrong hostname; the redirect handles the rest.
 cat > leaf.ext <<'EXT'
 basicConstraints=CA:FALSE
 keyUsage=critical,digitalSignature,keyEncipherment
