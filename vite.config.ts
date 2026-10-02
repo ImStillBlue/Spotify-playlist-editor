@@ -1,12 +1,13 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-// `npm run certs` writes a localhost CA plus leaf into .certs/. Spotify requires
-// an https redirect URI, so the dev server has to speak TLS. The certs are
-// gitignored, and a missing pair only downgrades dev to http rather than
-// breaking the build.
+const DEV_ORIGIN = 'https://127.0.0.1:5173'
+
+// `npm run certs` writes a CA plus leaf into .certs/. Spotify requires an https
+// redirect URI, so the dev server has to speak TLS. The certs are gitignored,
+// and a missing pair only downgrades dev to http rather than breaking the build.
 const certDir = resolve(__dirname, '.certs')
 const readCert = (name: string) => {
   try {
@@ -19,13 +20,40 @@ const readCert = (name: string) => {
 const key = readCert('localhost.key')
 const cert = readCert('localhost.pem')
 
+// Spotify rejects the `localhost` hostname in redirect URIs, so a page served
+// there can never finish a login. Left alone it is worse than a dead end: the
+// browser gives it separate localStorage, so the client ID and token appear to
+// vanish, and it looks like a bug rather than a hostname Spotify dislikes.
+// Bouncing it to the one canonical origin keeps a stray localhost tab working.
+function redirectLocalhostToLoopback(): Plugin {
+  return {
+    name: 'redirect-localhost-to-loopback',
+    configureServer(server) {
+      // Registered inline, not as a returned function: Vite runs returned hooks
+      // in postHooks, which sit *after* htmlFallbackMiddleware, so the SPA
+      // fallback would answer first and this would never see the request.
+      server.middlewares.use((req, res, next) => {
+        // Vite serves over HTTP/2, where the host arrives as :authority and
+        // req.headers.host is undefined, so both have to be consulted.
+        const authority = req.headers[':authority']
+        const host = (Array.isArray(authority) ? authority[0] : authority) ?? req.headers.host ?? ''
+        if (host.startsWith('localhost')) {
+          res.writeHead(302, { location: `${DEV_ORIGIN}${req.url ?? '/'}` })
+          res.end()
+          return
+        }
+        next()
+      })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), redirectLocalhostToLoopback()],
   base: '/Spotify-playlist-editor/',
   server: {
-    // Spotify bans the `localhost` hostname in redirect URIs, so local dev runs
-    // on an explicit loopback IP. Vite's default host resolved to ::1 only,
-    // which left 127.0.0.1 refusing connections.
+    // Bind the explicit loopback IP rather than a hostname, so the origin the
+    // app runs on is the same string that has to be registered with Spotify.
     host: '127.0.0.1',
     // Spotify matches the redirect URI byte for byte, so a silent bump to 5174
     // would break login. Fail loudly instead of landing on an unregistered URI.

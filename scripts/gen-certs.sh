@@ -26,8 +26,9 @@ openssl req -x509 -newkey rsa:2048 -sha256 -days "$DAYS" -nodes \
 openssl req -newkey rsa:2048 -nodes -keyout localhost.key -out localhost.csr \
   -subj '/CN=localhost'
 
-# 127.0.0.1 is listed first because Spotify rejects the `localhost` hostname in
-# redirect URIs, so that is the origin local development actually uses.
+# The DNS:localhost SAN is not there to make localhost usable: Spotify rejects
+# that hostname in redirect URIs, and the dev server redirects it to 127.0.0.1.
+# It only keeps the TLS handshake quiet during that redirect.
 cat > leaf.ext <<'EXT'
 basicConstraints=CA:FALSE
 keyUsage=critical,digitalSignature,keyEncipherment

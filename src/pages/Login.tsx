@@ -62,9 +62,9 @@ export default function Login() {
             {getRedirectUri()}
           </code>
           <p>
-            Spotify rejects the <code className="bg-spotify-black px-1 rounded">localhost</code> hostname
-            in redirect URIs. Local development must use the 127.0.0.1 URL above, registered
-            exactly as shown.
+            Spotify rejects the <code className="bg-spotify-black px-1 rounded">localhost</code>{' '}
+            hostname, so it is not a usable origin — the dev server redirects it to 127.0.0.1.
+            Register the URI above exactly as shown.
           </p>
         </div>
 
