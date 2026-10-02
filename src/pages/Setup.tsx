@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { hasClientId, setClientId, getClientId } from '../config/spotify'
+import { hasClientId, setClientId, getClientId, getRedirectUri, REDIRECT_URIS } from '../config/spotify'
 import { isLoggedIn } from '../services/auth'
 
 export default function Setup() {
@@ -10,7 +10,9 @@ export default function Setup() {
 
   // Pre-fill with existing client ID if available, otherwise use default
   const existingClientId = getClientId()
-  const [clientIdInput, setClientIdInput] = useState(existingClientId || 'c41e8c72e67141cbbf3f6765c06738b7')
+  // No baked-in default: Spotify's Development Mode allows one client ID per
+  // developer, so prefilling someone else's app reliably fails for the next user.
+  const [clientIdInput, setClientIdInput] = useState(existingClientId || '')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -67,9 +69,9 @@ export default function Setup() {
 
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4 text-sm">
             <p className="text-yellow-300">
-              Since Spotify's March 2026 update, a Development Mode app allows one client ID
-              per developer and only 5 authorized users. Use your own client ID rather than the
-              pre-filled one, or the shared limit fills up quickly.
+              Spotify's Development Mode allows one client ID per developer and only 5 authorized
+              users, so there is no shared default ID here. Create your own app and paste its
+              Client ID above.
             </p>
           </div>
 
@@ -91,10 +93,20 @@ export default function Setup() {
               <li>Click "Create App"</li>
               <li>Fill in any name and description</li>
               <li>
-                Set Redirect URI to:{' '}
+                Set Redirect URI to{' '}
                 <code className="bg-spotify-black px-2 py-1 rounded text-xs break-all">
-                  https://imstillblue.github.io/Spotify-playlist-editor/callback
+                  {getRedirectUri()}
                 </code>
+                {import.meta.env.DEV && (
+                  <span className="block mt-1 text-xs">
+                    Spotify rejects the <code className="bg-spotify-black px-1 rounded">localhost</code>{' '}
+                    hostname, so local dev must register this exact 127.0.0.1 URI. Local dev uses a
+                    self-signed certificate: run <code className="bg-spotify-black px-1 rounded">npm run certs</code>{' '}
+                    once to generate and trust it. Register{' '}
+                    <code className="bg-spotify-black px-1 rounded">{REDIRECT_URIS.live}</code> too so the deployed
+                    site can log in.
+                  </span>
+                )}
               </li>
               <li>Check "Web API" under APIs used</li>
               <li>Accept the terms and click Save</li>

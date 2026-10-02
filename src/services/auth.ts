@@ -1,4 +1,4 @@
-import { SPOTIFY_CONFIG, getClientId } from '../config/spotify'
+import { SPOTIFY_CONFIG, getClientId, getRedirectUri, isSpotifyAllowedOrigin } from '../config/spotify'
 import { TokenData } from '../types/spotify'
 import {
   generateCodeVerifier,
@@ -26,10 +26,21 @@ export async function initiateLogin(): Promise<void> {
   const challenge = await generateCodeChallenge(verifier)
   storeCodeVerifier(verifier)
 
+  // Spotify answers a disallowed callback with a bare "INVALID_CLIENT: Insecure
+  // redirect URI", so fail here where the message can name the actual cause.
+  if (!isSpotifyAllowedOrigin()) {
+    throw new Error(
+      `Spotify does not accept a redirect URI on this origin (${location.origin}). ` +
+        'Open the app via https://127.0.0.1:5173 instead of https://localhost:5173, ' +
+        'and register that exact URI in your Spotify app settings.'
+    )
+  }
+
   const params = new URLSearchParams({
     client_id: clientId,
     response_type: 'code',
-    redirect_uri: SPOTIFY_CONFIG.redirectUri,
+    // The token exchange must send the exact same value, so both read the resolver.
+    redirect_uri: getRedirectUri(),
     scope: SPOTIFY_CONFIG.scopes.join(' '),
     code_challenge_method: 'S256',
     code_challenge: challenge,
@@ -58,7 +69,7 @@ export async function handleCallback(code: string): Promise<TokenData> {
       client_id: clientId,
       grant_type: 'authorization_code',
       code,
-      redirect_uri: SPOTIFY_CONFIG.redirectUri,
+      redirect_uri: getRedirectUri(),
       code_verifier: verifier,
     }),
   })

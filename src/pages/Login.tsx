@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { hasClientId } from '../config/spotify'
+import { hasClientId, getRedirectUri, isSpotifyAllowedOrigin } from '../config/spotify'
 import { initiateLogin, isLoggedIn } from '../services/auth'
 
 export default function Login() {
   const navigate = useNavigate()
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (!hasClientId()) {
@@ -17,10 +18,12 @@ export default function Login() {
   }, [navigate])
 
   const handleLogin = async () => {
+    setError('')
     try {
       await initiateLogin()
-    } catch (error) {
-      console.error('Login failed:', error)
+    } catch (err) {
+      // Spotify's own "Insecure" response names no cause, so surface ours.
+      setError(err instanceof Error ? err.message : 'Login failed')
     }
   }
 
@@ -40,6 +43,30 @@ export default function Login() {
         >
           Log in with Spotify
         </button>
+
+        {error && (
+          <div className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-left text-sm text-red-300">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-6 text-left text-xs text-spotify-subdued space-y-1">
+          <p>
+            Redirect URI sent to Spotify
+            {!isSpotifyAllowedOrigin() && (
+              <span className="text-red-400"> (Spotify will reject this!)</span>
+            )}
+            :
+          </p>
+          <code className="block break-all rounded bg-spotify-light-gray px-2 py-1 text-spotify-green">
+            {getRedirectUri()}
+          </code>
+          <p>
+            Spotify rejects the <code className="bg-spotify-black px-1 rounded">localhost</code> hostname
+            in redirect URIs. Local development must use the 127.0.0.1 URL above, registered
+            exactly as shown.
+          </p>
+        </div>
 
         <button
           onClick={() => navigate('/?edit=true')}
