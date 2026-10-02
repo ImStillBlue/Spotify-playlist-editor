@@ -34,3 +34,6 @@ lerna-debug.log*
 .env
 .env.local
 .env.*.local
+
+# Local TLS material for the dev server (regenerate with `npm run certs`)
+.certs/
