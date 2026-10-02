@@ -167,7 +167,7 @@ export default function LikedSongs() {
               </p>
             </div>
 
-            <div className={`flex gap-2 transition-all duration-200 ${hasChanges ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none w-0'}`}>
+            <div className={`flex gap-2 transition-all duration-200 overflow-hidden ${hasChanges ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none w-0'}`}>
               <button
                 onClick={handleDiscard}
                 disabled={saving}
