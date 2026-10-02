@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mockup A — selection actions pinned at the TOP (compact, opaque)</title>
+<style>
+  :root{
+    --black:#121212; --dark:#181818; --lg:#282828; --sub:#A7A7A7;
+    --green:#1DB954; --red:#f87171;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0a0a;color:#fff;font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+       display:flex;flex-direction:column;align-items:center;gap:20px;padding:24px 12px}
+  .caption{max-width:390px;color:#7a7a7a;font-size:13px;line-height:1.6}
+  .caption b{color:#fff}
+  .phone{position:relative;width:390px;height:844px;border-radius:38px;overflow:hidden;
+         background:var(--black);border:8px solid #262626;box-shadow:0 24px 60px rgba(0,0,0,.7)}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:26px;
+         background:#000;border-radius:0 0 16px 16px;z-index:60}
+  .statusbar{position:absolute;top:0;left:0;right:0;height:44px;z-index:50;color:#fff;
+             font-size:12px;font-weight:600;display:flex;align-items:flex-end;justify-content:space-between;
+             padding:0 20px 4px;pointer-events:none}
+
+  /* ---- sticky header: OPAQUE, and it does NOT grow when a song is selected ---- */
+  header{position:sticky;top:0;z-index:30;background:var(--dark);border-bottom:1px solid #000;padding-top:26px}
+  .row-top{display:flex;align-items:center;gap:10px;padding:6px 12px 8px}
+  .back{width:36px;height:36px;flex:0 0 36px;border-radius:999px;background:#000;display:flex;
+        align-items:center;justify-content:center;font-size:17px}
+  .title{flex:1;min-width:0}
+  .title b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .title span{font-size:11px;color:var(--sub)}
+
+  /* the title row is swapped out for the action bar when songs are selected,
+     so the sticky block is the SAME height either way */
+  .actions{display:none;align-items:center;gap:6px;padding:8px 10px}
+  body.selected .actions{display:flex}
+  body.selected .row-top{display:none}
+  .count{font-size:13px;font-weight:700;color:#000;background:var(--green);border-radius:9px;
+         height:36px;min-width:36px;padding:0 8px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  /* every action is flex:1 + min-width:0, so the row can never overflow or wrap */
+  .act{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;gap:4px;
+       height:36px;padding:0 4px;border:0;border-radius:9px;background:#333;color:#fff;
+       font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden}
+  .act:active{background:#444}
+  .act.danger{color:#fff;background:#5a2020}
+  .act.ghost{flex:0 0 36px;background:#2a2a2a;color:var(--sub);font-size:15px}
+
+  .searchwrap{padding:0 12px 10px;background:var(--dark)}
+  body.selected .searchwrap{border-top:1px solid #000}
+  .search{display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;border-radius:19px;background:#000}
+  .search input{flex:1;min-width:0;background:none;border:0;outline:0;color:#fff;font-size:15px}
+  .search input::placeholder{color:#7a7a7a}
+  .search svg{flex:0 0 auto}
+
+  main{position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+       overscroll-behavior:contain;padding-top:0;padding-bottom:24px}
+  .song{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid rgba(40,40,40,.55)}
+  .song:active{background:#1f1f1f}
+  .box{width:24px;height:24px;flex:0 0 24px;border:2px solid rgba(167,167,167,.65);border-radius:6px;
+       display:flex;align-items:center;justify-content:center}
+  .song.sel .box{background:var(--green);border-color:var(--green)}
+  .art{width:44px;height:44px;flex:0 0 44px;border-radius:5px;background:#333}
+  .meta{flex:1;min-width:0}
+  .meta b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .meta span{font-size:12px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .song.sel .meta b{color:var(--green)}
+  .dur{font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums}
+  .grip{width:26px;text-align:center;color:var(--sub);font-size:15px;flex:0 0 26px}
+  .empty{display:none;padding:40px 20px;text-align:center;color:var(--sub);font-size:14px}
+  body.noresults .empty{display:block}
+  mark{background:none;color:var(--green);font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="caption">
+  <b>Variant A — actions pinned at the TOP.</b>
+  The action bar <i>replaces</i> the title row when songs are selected, so the sticky
+  block is the same height whether you have selected nothing or 20 songs. Opaque, so
+  nothing shows through it. One row, short labels, never wraps. Search sits directly
+  under it and is always reachable.
+</div>
+
+<div class="phone">
+  <div class="notch"></div>
+  <div class="statusbar"><span>9:41</span><span>5G ▮</span></div>
+  <div style="height:26px"></div>
+
+  <header style="margin-top:-26px">
+    <div class="row-top">
+      <div class="back">‹</div>
+      <div class="title"><b>Road Trip 2026</b><span>128 tracks</span></div>
+    </div>
+
+    <div class="actions">
+      <span class="count" id="count">0 selected</span>
+      <button class="act" data-do="top">⇡ Top</button>
+      <button class="act" data-do="bottom">⇣ Bottom</button>
+      <button class="act danger" data-do="remove">✕ Remove</button>
+      <button class="act ghost" data-do="clear" aria-label="Clear selection">✕</button>
+    </div>
+
+    <div class="searchwrap">
+      <label class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a7a7a" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Search songs or artists" autocomplete="off">
+      </label>
+    </div>
+  </header>
+
+  <main id="main">
+    <div id="list"></div>
+    <div class="empty">No songs match that.</div>
+  </main>
+</div>
+
+<script>
+const SONGS = [
+  ["Midnight City","M83","4:03"],["A-Punk","Vampire Weekend","4:38"],
+  ["Young Blood","The Naked and Famous","3:59"],["Midnight Blue","Lou Reed","4:15"],
+  ["City of Stars","Ryan Gosling & Rachel McAdams","3:22"],
+  ["Take Me Out","Franz Ferdinand","3:57"],["Midnight","Marvin Gaye","2:40"],
+  ["Pumped Up Kicks","Foals","3:33"],["Electric Feel","MGMT","3:49"],
+  ["Sweet Disposition","The Temper Trap","3:54"],["Midnight Sun","Sleeping At Last","5:02"],
+  ["Runaway","Kanye West","4:08"],["Outro","M83","5:30"],["Home","Edward Sharpe","5:07"],
+  ["First Day of My Life","Bright Eyes","4:01"],["Reptilia","Modest Mouse","3:47"]
+];
+const list = document.getElementById('list');
+const selected = new Set();
+
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+
+function score(track, q){
+  const t = track[0].toLowerCase(), a = track[1].toLowerCase();
+  if (t === q) return 0;
+  if (t.startsWith(q)) return 1;
+  if (a.startsWith(q)) return 2;
+  if (t.includes(q)) return 3;
+  if (a.includes(q)) return 4;
+  if (fuzzy(t,q)) return 5;
+  if (fuzzy(a,q)) return 6;
+  return -1;
+}
+function fuzzy(text, q){
+  // Subsequence match with a DENSITY GATE. Without the span limit a 3-letter
+  // query matches almost anything ("mid" hits "Vampire Weekend" on m-i-d).
+  // The matched characters must sit within a window proportional to the query.
+  const limit = q.length * 4;
+  let i = 0, first = -1, last = -1, n = 0;
+  for (const ch of q){ if(ch===' ') continue; const k = text.indexOf(ch, i); if(k<0) return false;
+    if(first<0) first=k; last=k; i=k+1; n++; }
+  if(n < 2) return false;
+  return (last - first + 1) <= limit;
+}
+function highlight(s, q){
+  if(!q) return esc(s);
+  const i = s.toLowerCase().indexOf(q);
+  if(i<0) return esc(s);
+  return esc(s.slice(0,i)) + '<mark>' + esc(s.slice(i,i+q.length)) + '</mark>' + esc(s.slice(i+q.length));
+}
+
+function render(){
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  const rows = SONGS
+    .map((s,i)=>({s,i,rank: q ? score(s,q) : 0}))
+    .filter(r => r.rank >= 0)
+    .sort((a,b)=> a.rank - b.rank);
+
+  list.innerHTML = rows.map(({s,i}) => `
+    <div class="song ${selected.has(i)?'sel':''}" data-i="${i}">
+      <div class="box">${selected.has(i)?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3.5"><path d="M5 13l4 4L19 7"/></svg>':''}</div>
+      <div class="art" style="background:${i%4===0?'#1DB954':i%4===1?'#3a3a3a':i%4===2?'#5a3a6a':'#2a4a5a'}"></div>
+      <div class="meta"><b>${highlight(s[0],q)}</b><span>${highlight(s[1],q)}</span></div>
+      <span class="dur">${s[2]}</span>
+      <span class="grip">⠿</span>
+    </div>`).join('');
+
+  document.body.classList.toggle('noresults', rows.length === 0);
+  document.getElementById('count').textContent = selected.size;
+  document.body.classList.toggle('selected', selected.size > 0);
+}
+
+list.addEventListener('click', e => {
+  const row = e.target.closest('.song'); if(!row) return;
+  const i = +row.dataset.i;
+  selected.has(i) ? selected.delete(i) : selected.add(i);
+  render();
+});
+document.querySelectorAll('[data-do]').forEach(b => b.addEventListener('click', () => {
+  const d = b.dataset.do;
+  if(d === 'clear') selected.clear();
+  if(d === 'remove') [...selected].forEach(i => selected.delete(i));
+  render();
+}));
+document.getElementById('q').addEventListener('input', render);
+
+document.getElementById('q').value = 'mid';
+render();
+selected.add(1); selected.add(3);
+render();
+</script>
+</body>
+</html>

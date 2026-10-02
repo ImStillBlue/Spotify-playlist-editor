@@ -1,25 +1,30 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { isLoggedIn } from '../services/auth'
 import { getLikedSongs, removeSavedTracks } from '../services/spotifyApi'
-import { SavedTrack } from '../types/spotify'
+import { TrackRow } from '../types/track'
+import { rankMatches, removeSelected, toTrackRows } from '../utils/trackSearch'
 import LikedTrackItem from '../components/LikedTrackItem'
+import SelectionActionBar from '../components/SelectionActionBar'
 
 export default function LikedSongs() {
   const navigate = useNavigate()
 
-  const [tracks, setTracks] = useState<SavedTrack[]>([])
-  const [originalTracks, setOriginalTracks] = useState<SavedTrack[]>([])
-  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
+  const [rows, setRows] = useState<TrackRow[]>([])
+  const [originalRows, setOriginalRows] = useState<TrackRow[]>([])
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
+  const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   // The only edit possible on Liked Songs is removal, so "changed" simply means
   // the current list is shorter than what we loaded.
-  const removedCount = originalTracks.length - tracks.length
+  const removedCount = originalRows.length - rows.length
   const hasChanges = removedCount > 0
-  const allSelected = tracks.length > 0 && selectedIndices.size === tracks.length
+  const allSelected = rows.length > 0 && selectedKeys.size === rows.length
+
+  const matches = useMemo(() => rankMatches(rows, query), [rows, query])
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -33,9 +38,9 @@ export default function LikedSongs() {
     try {
       setLoading(true)
       const items = await getLikedSongs()
-      const validTracks = items.filter((t) => t.track !== null)
-      setTracks(validTracks)
-      setOriginalTracks(validTracks)
+      const validRows = toTrackRows(items, (i) => i.track)
+      setRows(validRows)
+      setOriginalRows(validRows)
     } catch (err) {
       console.error('Failed to load liked songs:', err)
       setError('Failed to load liked songs')
@@ -44,41 +49,41 @@ export default function LikedSongs() {
     }
   }
 
-  const toggleSelect = useCallback((index: number) => {
-    setSelectedIndices((prev) => {
+  const toggleSelect = useCallback((key: string) => {
+    setSelectedKeys((prev) => {
       const next = new Set(prev)
-      if (next.has(index)) {
-        next.delete(index)
+      if (next.has(key)) {
+        next.delete(key)
       } else {
-        next.add(index)
+        next.add(key)
       }
       return next
     })
   }, [])
 
   const toggleSelectAll = () => {
-    setSelectedIndices((prev) =>
-      prev.size === tracks.length ? new Set() : new Set(tracks.map((_, i) => i))
+    setSelectedKeys((prev) =>
+      prev.size === rows.length ? new Set() : new Set(rows.map((r) => r.key))
     )
   }
 
   const deselectAll = () => {
-    setSelectedIndices(new Set())
+    setSelectedKeys(new Set())
   }
 
-  const removeSelected = () => {
-    if (selectedIndices.size === 0) return
-    setTracks(tracks.filter((_, i) => !selectedIndices.has(i)))
-    setSelectedIndices(new Set())
+  const removeSelectedTracks = () => {
+    if (selectedKeys.size === 0) return
+    setRows((prev) => removeSelected(prev, selectedKeys))
+    setSelectedKeys(new Set())
   }
 
   const handleSave = async () => {
     if (!hasChanges) return
 
-    const currentUris = new Set(tracks.map((t) => t.track!.uri))
-    const removedUris = originalTracks
-      .filter((t) => t.track && !currentUris.has(t.track.uri))
-      .map((t) => t.track!.uri)
+    const currentUris = new Set(rows.map((r) => r.track.uri))
+    const removedUris = originalRows
+      .filter((r) => !currentUris.has(r.track.uri))
+      .map((r) => r.track.uri)
 
     if (removedUris.length === 0) return
 
@@ -94,8 +99,8 @@ export default function LikedSongs() {
       setSaving(true)
       setError('')
       await removeSavedTracks(removedUris)
-      setOriginalTracks([...tracks])
-      setSelectedIndices(new Set())
+      setOriginalRows([...rows])
+      setSelectedKeys(new Set())
     } catch (err) {
       console.error('Failed to save:', err)
       if ((err as { status?: number })?.status === 403) {
@@ -111,8 +116,8 @@ export default function LikedSongs() {
   }
 
   const handleDiscard = () => {
-    setTracks([...originalTracks])
-    setSelectedIndices(new Set())
+    setRows([...originalRows])
+    setSelectedKeys(new Set())
   }
 
   const handleBack = () => {
@@ -133,14 +138,13 @@ export default function LikedSongs() {
   }
 
   return (
-    <div className="min-h-screen bg-spotify-black">
-      {/* Header - distinct purple/blue identity for Liked Songs */}
-      <header className="sticky top-0 bg-gradient-to-b from-indigo-900 via-purple-900/90 to-spotify-black/95 backdrop-blur-sm z-10 safe-area-top">
+    <div className="h-[100dvh] flex flex-col overflow-hidden bg-spotify-black">
+      <header className="flex-shrink-0 bg-gradient-to-b from-indigo-900 to-purple-900 safe-area-top z-10">
         <div className="max-w-3xl mx-auto px-4 py-3">
-          {/* Top row */}
           <div className="flex items-center gap-3">
             <button
               onClick={handleBack}
+              aria-label="Back to playlists"
               className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 text-white active:bg-black/60 transition-colors flex-shrink-0"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,7 +152,6 @@ export default function LikedSongs() {
               </svg>
             </button>
 
-            {/* Liked Songs heart tile */}
             <div className="w-10 h-10 rounded bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
               <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -156,18 +159,24 @@ export default function LikedSongs() {
             </div>
 
             <div className="flex-1 min-w-0">
-              <h1 className="text-base sm:text-lg font-bold text-white truncate">
-                Liked Songs
-              </h1>
+              <h1 className="text-base sm:text-lg font-bold text-white truncate">Liked Songs</h1>
               <p className="text-spotify-subdued text-xs flex items-center">
-                {tracks.length} song{tracks.length !== 1 ? 's' : ''}
-                <span className={`ml-2 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs transition-all duration-200 ${hasChanges ? 'opacity-100 scale-100' : 'opacity-0 scale-75 w-0 ml-0 px-0'}`}>
+                {rows.length} song{rows.length !== 1 ? 's' : ''}
+                <span
+                  className={`ml-2 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs transition-all duration-200 overflow-hidden ${
+                    hasChanges ? 'opacity-100 scale-100' : 'opacity-0 scale-75 w-0 ml-0 px-0'
+                  }`}
+                >
                   {removedCount} to remove
                 </span>
               </p>
             </div>
 
-            <div className={`flex gap-2 transition-all duration-200 overflow-hidden ${hasChanges ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none w-0'}`}>
+            <div
+              className={`flex gap-2 transition-all duration-200 overflow-hidden ${
+                hasChanges ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none w-0'
+              }`}
+            >
               <button
                 onClick={handleDiscard}
                 disabled={saving}
@@ -185,86 +194,115 @@ export default function LikedSongs() {
             </div>
           </div>
 
-          {/* Select all row */}
-          {tracks.length > 0 && (
-            <div className="mt-3 flex items-center justify-between">
+          {rows.length > 0 && (
+            <div className="mt-2 flex items-center justify-between">
               <button
                 onClick={toggleSelectAll}
-                className="text-sm text-spotify-subdued active:text-white px-2 py-1 -ml-2 rounded-full transition-colors"
+                className="text-sm text-white/80 px-2 py-1 -ml-2 rounded-full active:bg-white/10 transition-colors"
               >
                 {allSelected ? 'Deselect all' : 'Select all'}
               </button>
-              <span className="text-spotify-subdued text-xs">
-                Tap a song to select
-              </span>
             </div>
           )}
 
-          {/* Selection toolbar - smooth show/hide like the playlist editor */}
-          <div
-            className="grid transition-all duration-200 ease-out"
-            style={{ gridTemplateRows: selectedIndices.size > 0 ? '1fr' : '0fr' }}
-          >
-            <div className="overflow-hidden">
-              <div className={`mt-3 py-2 px-3 bg-spotify-light-gray/50 rounded-lg transition-opacity duration-200 ${selectedIndices.size > 0 ? 'opacity-100' : 'opacity-0'}`}>
-                <div className="flex items-center justify-between">
-                  <span className="text-white text-sm font-medium">
-                    {selectedIndices.size} selected
-                  </span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={deselectAll}
-                      className="px-3 py-1.5 text-sm text-spotify-subdued active:text-white active:bg-white/10 rounded-full transition-colors"
-                    >
-                      Clear
-                    </button>
-                    <button
-                      onClick={removeSelected}
-                      className="px-4 py-1.5 text-sm text-red-400 bg-red-500/10 active:bg-red-500/20 rounded-lg transition-colors"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="mt-2">
+            <label className="flex items-center gap-2 h-9 px-3 rounded-full bg-black">
+              <svg
+                className="w-4 h-4 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.4}
+                viewBox="0 0 24 24"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path strokeLinecap="round" d="M20 20l-3.5-3.5" />
+              </svg>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search songs or artists"
+                aria-label="Search songs or artists"
+                className="flex-1 min-w-0 bg-transparent outline-none text-white text-sm placeholder:text-white/50"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery('')}
+                  aria-label="Clear search"
+                  className="flex-shrink-0 w-5 h-5 rounded-full bg-white/25 text-white text-xs flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              )}
+            </label>
+            {query.trim() !== '' && (
+              <p className="mt-1.5 text-xs text-white/60">
+                {matches.length} of {rows.length} songs
+              </p>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Track list */}
-      <main className="max-w-3xl mx-auto px-2 sm:px-4 pb-8 safe-area-bottom">
+      <main
+        className={`flex-1 min-h-0 overflow-y-auto overscroll-none ${
+          selectedKeys.size > 0 ? 'pb-24' : 'pb-4'
+        }`}
+      >
         {error && (
-          <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 my-4">
-            <p className="text-red-400 text-sm">{error}</p>
+          <div className="max-w-3xl mx-auto px-2 sm:px-4">
+            <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 my-4">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
           </div>
         )}
 
-        {tracks.length === 0 ? (
-          <div className="text-center py-12 sm:py-16">
-            <div className="w-16 h-16 bg-gradient-to-br from-indigo-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-              </svg>
+        <div className="max-w-3xl mx-auto px-2 sm:px-4">
+          {rows.length === 0 ? (
+            <div className="text-center py-12 sm:py-16">
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                </svg>
+              </div>
+              <p className="text-spotify-subdued">No liked songs</p>
+              <p className="text-spotify-subdued/60 text-sm mt-1">
+                Songs you like on Spotify will show up here
+              </p>
             </div>
-            <p className="text-spotify-subdued">No liked songs</p>
-            <p className="text-spotify-subdued/60 text-sm mt-1">
-              Songs you like on Spotify will show up here
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-spotify-light-gray/30">
-            {tracks.map((track, index) => (
-              <LikedTrackItem
-                key={`${track.track?.id}-${index}`}
-                track={track}
-                isSelected={selectedIndices.has(index)}
-                onToggleSelect={() => toggleSelect(index)}
-              />
-            ))}
-          </div>
-        )}
+          ) : (
+            <>
+              <div className="divide-y divide-spotify-light-gray/30">
+                {matches.map(({ row, titleHits, artistHits }) => (
+                  <LikedTrackItem
+                    key={row.key}
+                    row={row}
+                    isSelected={selectedKeys.has(row.key)}
+                    onToggleSelect={() => toggleSelect(row.key)}
+                    titleHits={titleHits}
+                    artistHits={artistHits}
+                  />
+                ))}
+              </div>
+              {matches.length === 0 && (
+                <p className="py-10 text-center text-spotify-subdued text-sm">
+                  No songs match that.
+                </p>
+              )}
+            </>
+          )}
+        </div>
       </main>
+
+      <SelectionActionBar
+        count={selectedKeys.size}
+        onMoveToTop={() => {}}
+        onMoveToBottom={() => {}}
+        onRemove={removeSelectedTracks}
+        onClear={deselectAll}
+        accent="purple"
+        canMove={false}
+      />
     </div>
   )
 }

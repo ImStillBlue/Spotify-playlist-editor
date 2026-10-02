@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mockup — fuzzy search, ranked matches, tap to select</title>
+<style>
+  :root{ --black:#121212; --dark:#181818; --sub:#A7A7A7; --green:#1DB954; --red:#f87171; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0a0a;color:#fff;font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+       display:flex;flex-direction:column;align-items:center;gap:20px;padding:24px 12px}
+  .caption{max-width:390px;color:#7a7a7a;font-size:13px;line-height:1.6}
+  .caption b{color:#fff}
+  .phone{position:relative;width:390px;height:844px;border-radius:38px;overflow:hidden;
+         background:var(--black);border:8px solid #262626;box-shadow:0 24px 60px rgba(0,0,0,.7)}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:26px;
+         background:#000;border-radius:0 0 16px 16px;z-index:60}
+  .statusbar{position:absolute;top:0;left:0;right:0;height:44px;z-index:55;color:#fff;font-size:12px;
+             font-weight:600;display:flex;align-items:flex-end;justify-content:space-between;
+             padding:0 20px 4px;pointer-events:none}
+  .homebar{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:134px;height:5px;
+           border-radius:3px;background:#fff;opacity:.35;z-index:60}
+
+  header{position:absolute;top:0;left:0;right:0;z-index:30;background:var(--dark);border-bottom:1px solid #000;padding-top:26px}
+  .row-top{display:flex;align-items:center;gap:10px;padding:8px 12px}
+  .back{width:36px;height:36px;flex:0 0 36px;border-radius:999px;background:#000;display:flex;
+        align-items:center;justify-content:center;font-size:17px}
+  .title{flex:1;min-width:0}
+  .title b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .title span{font-size:11px;color:var(--sub)}
+  .searchwrap{padding:0 12px 10px}
+  .search{display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;border-radius:19px;background:#000}
+  .search input{flex:1;min-width:0;background:none;border:0;outline:0;color:#fff;font-size:15px}
+  .search .clr{display:none;width:22px;height:22px;border-radius:999px;background:#555;color:#fff;
+               font-size:13px;line-height:1;text-align:center;flex:0 0 22px}
+  body.searching .search .clr{display:block}
+  .meta-row{padding:0 12px 8px;font-size:11px;color:var(--sub);display:flex;justify-content:space-between}
+  .hint{color:var(--green)}
+
+  main{position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+       overscroll-behavior:contain;padding-top:126px;padding-bottom:24px}
+  .song{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid rgba(40,40,40,.55)}
+  .song:active{background:#1f1f1f}
+  .song.sel{background:rgba(255,255,255,.06)}
+  .box{width:24px;height:24px;flex:0 0 24px;border:2px solid rgba(167,167,167,.65);border-radius:6px;
+       display:flex;align-items:center;justify-content:center}
+  .song.sel .box{background:var(--green);border-color:var(--green)}
+  .art{width:44px;height:44px;flex:0 0 44px;border-radius:5px;background:#333}
+  .meta{flex:1;min-width:0}
+  .meta b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .meta span{font-size:12px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .song.sel .meta b{color:var(--green)}
+  .dur{font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums}
+  mark{background:rgba(29,185,84,.22);color:#5ef08e;border-radius:2px;padding:0 1px}
+  .fuzzy mark{background:rgba(29,185,84,.14);color:#7ef0a4}
+  .meta .badge{display:inline-block;font-size:10px;color:#0b0b0b;background:var(--green);
+         border-radius:4px;padding:1px 5px;margin-left:6px;font-weight:700}
+  .empty{display:none;padding:36px 20px;text-align:center;color:var(--sub);font-size:14px}
+  body.noresults .empty{display:block}
+  .try{display:block;margin-top:10px;color:#5a5a5a;font-size:13px}
+  .dock{position:absolute;left:0;right:0;bottom:0;z-index:40;background:#1c1c1c;border-top:1px solid #000;
+        padding:8px 12px 26px;display:none}
+  body.selected .dock{display:block}
+  .dock .row{display:flex;align-items:center;gap:8px}
+  .count{font-size:13px;font-weight:700;color:#000;background:var(--green);border-radius:9px;height:40px;min-width:40px;padding:0 9px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .act{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;gap:4px;height:40px;padding:0 4px;border:0;border-radius:10px;background:#333;color:#fff;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden}
+  .act.danger{color:var(--red)}
+  .act.ghost{flex:0 0 40px;background:#2f2f2f;color:var(--sub);font-size:16px}
+  .chips{display:flex;gap:6px;overflow-x:auto;padding:0 12px 8px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;height:28px;padding:0 11px;border-radius:14px;background:#2f2f2f;color:#ddd;
+        font-size:12px;border:0;white-space:nowrap}
+  .chip[aria-pressed="true"]{background:var(--green);color:#000;font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="caption">
+  <b>Fuzzy search.</b> Typing filters as you type and ranks: exact title, title prefix,
+  artist prefix, title contains, artist contains, then a subsequence match (<span
+  style="color:#7ef0a4">fuzzy</span>) so <i>mdc</i> still finds <i>Midnight City</i>.
+  Matched characters are highlighted. Tap any row to select it — selection is independent
+  of the filter, so you can pick several matches and then act on all of them at once.
+  Nothing is scrolled away: the field and the count stay pinned.
+</div>
+
+<div class="phone">
+  <div class="notch"></div>
+  <div class="statusbar"><span>9:41</span><span>5G ▮</span></div>
+  <header>
+    <div class="row-top">
+      <div class="back">‹</div>
+      <div class="title"><b>Road Trip 2026</b><span>128 tracks</span></div>
+    </div>
+    <div class="searchwrap">
+      <label class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a7a7a" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Search songs or artists" autocomplete="off">
+        <button class="clr" id="clr" aria-label="Clear search">✕</button>
+      </label>
+    </div>
+    <div class="chips">
+      <button class="chip" data-term="mid">mid</button>
+      <button class="chip" data-term="mdc">mdc</button>
+      <button class="chip" data-term="foals">foals</button>
+      <button class="chip" data-term="city">city</button>
+      <button class="chip" data-term="o">o</button>
+    </div>
+    <div class="meta-row"><span id="count"></span><span class="hint" id="pick"></span></div>
+  </header>
+
+  <main id="main">
+    <div id="list"></div>
+    <div class="empty">No songs match that.<span class="try">Try fewer letters — fuzzy matching still finds it.</span></div>
+  </main>
+
+  <div class="dock">
+    <div class="row">
+      <span class="count" id="dcount">0 selected</span>
+      <button class="act" data-do="top">⇡ Top</button>
+      <button class="act" data-do="bottom">⇣ Bottom</button>
+      <button class="act danger" data-do="remove">✕ Remove</button>
+      <button class="act ghost" data-do="clear" aria-label="Clear selection">✕</button>
+    </div>
+  </div>
+  <div class="homebar"></div>
+</div>
+
+<script>
+const SONGS = [
+  ["Midnight City","M83","4:03"],["A-Punk","Vampire Weekend","4:38"],
+  ["Young Blood","The Naked and Famous","3:59"],["Midnight Blue","Lou Reed","4:15"],
+  ["City of Stars","Ryan Gosling & Rachel McAdams","3:22"],
+  ["Take Me Out","Franz Ferdinand","3:57"],["Midnight","Marvin Gaye","2:40"],
+  ["Pumped Up Kicks","Foals","3:33"],["Electric Feel","MGMT","3:49"],
+  ["Sweet Disposition","The Temper Trap","3:54"],["Midnight Sun","Sleeping At Last","5:02"],
+  ["Runaway","Kanye West","4:08"],["Outro","M83","5:30"],["Home","Edward Sharpe","5:07"],
+  ["First Day of My Life","Bright Eyes","4:01"],["Reptilia","Modest Mouse","3:47"]
+];
+const list=document.getElementById('list'), q=document.getElementById('q'), selected=new Set();
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+function fuzzyPos(text,q){
+  const limit=q.length*4; let i=0,pos=[],n=0;
+  for(const ch of q){if(ch===' ')continue;const k=text.indexOf(ch,i);if(k<0)return null;pos.push(k);i=k+1;n++;}
+  if(n<2)return null;
+  if((pos[pos.length-1]-pos[0]+1)>limit)return null;   // density gate
+  return pos;
+}
+function sub(s,pos){
+  // positions come from whichever field matched; a title match must not throw
+  // when replayed against a shorter artist string
+  if(!pos)return esc(s);
+  const use=pos.filter(k=>k>=0&&k<s.length);
+  if(!use.length)return esc(s);
+  let o='',p=0;
+  for(const k of use){ if(k<p)continue; o+=esc(s.slice(p,k)); o+='<mark>'+esc(s[k])+'</mark>'; p=k+1; }
+  return o+esc(s.slice(p));
+}
+function evaluate(s,q){
+  const a=s[0].toLowerCase(),b=s[1].toLowerCase();
+  if(a===q)return{rank:0,why:'exact title'};
+  if(a.startsWith(q))return{rank:1,why:'title'};
+  if(b.startsWith(q))return{rank:2,why:'artist'};
+  if(a.includes(q))return{rank:3,why:'title'};
+  if(b.includes(q))return{rank:4,why:'artist'};
+  const pa=fuzzyPos(a,q); if(pa)return{rank:5,why:'fuzzy',pos:pa};
+  const pb=fuzzyPos(b,q); if(pb)return{rank:6,why:'fuzzy',pos:pb};
+  return null;
+}
+function render(){
+  const term=q.value.trim(), t=term.toLowerCase();
+  document.body.classList.toggle('searching',term.length>0);
+  let rows;
+  if(!t){ rows=SONGS.map((s,i)=>({s,i,rank:0,why:null})); }
+  else{
+    rows=SONGS.map((s,i)=>({s,i,e:evaluate(s,t)})).filter(r=>r.e)
+      .sort((a,b)=>a.e.rank-b.e.rank||a.s[0].length-b.s[0].length);
+  }
+  list.innerHTML=rows.map(({s,i,e})=>{
+    const fuzzy=e&&e.rank>=5;
+    const h=(txt,exact)=>{
+      if(!e)return esc(txt);
+      if(fuzzy)return sub(txt,e.pos);
+      const k=txt.toLowerCase().indexOf(t); if(k<0)return esc(txt);
+      return esc(txt.slice(0,k))+'<mark>'+esc(txt.slice(k,k+t.length))+'</mark>'+esc(txt.slice(k+t.length));
+    };
+    return `<div class="song ${selected.has(i)?'sel':''} ${fuzzy?'fuzzy':''}" data-i="${i}">
+      <div class="box">${selected.has(i)?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3.5"><path d="M5 13l4 4L19 7"/></svg>':''}</div>
+      <div class="art" style="background:${i%4===0?'#1DB954':i%4===1?'#3a3a3a':i%4===2?'#5a3a6a':'#2a4a5a'}"></div>
+      <div class="meta"><b>${h(s[0])}${e&&e.why==='fuzzy'?'<span class="badge">fuzzy</span>':''}</b><span>${h(s[1])}</span></div>
+      <span class="dur">${s[2]}</span></div>`;
+  }).join('');
+  document.body.classList.toggle('noresults',rows.length===0);
+  document.getElementById('count').textContent = t ? rows.length+' of '+SONGS.length+' songs' : SONGS.length+' songs';
+  document.getElementById('pick').textContent = selected.size? selected.size+' selected' : '';
+  document.getElementById('dcount').textContent = selected.size+' selected';
+  document.body.classList.toggle('selected',selected.size>0);
+  document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.term===t)));
+}
+list.addEventListener('click',e=>{const r=e.target.closest('.song');if(!r)return;
+  const i=+r.dataset.i;selected.has(i)?selected.delete(i):selected.add(i);render();});
+document.querySelectorAll('[data-do]').forEach(b=>b.addEventListener('click',()=>{
+  const d=b.dataset.do; if(d==='clear')selected.clear();
+  if(d==='remove')[...selected].forEach(i=>selected.delete(i)); render();}));
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{q.value=c.dataset.term;render();}));
+document.getElementById('clr').addEventListener('click',()=>{q.value='';render();q.focus();});
+q.addEventListener('input',render);
+q.value='mid'; selected.add(1); render();
+</script>
+
+<!-- keep the scroll area clear of the fixed header, whatever height it ends up -->
+<script>
+  const main = document.getElementById('main'), hdr = document.querySelector('header');
+  const fit = () => { main.style.paddingTop = hdr.offsetHeight + 'px'; };
+  fit(); addEventListener('resize', fit); render(); fit();
+</script>
+</body>
+</html>
