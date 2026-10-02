@@ -5,6 +5,9 @@ node_modules
 dist
 tsconfig.tsbuildinfo
 
+# Test output
+coverage
+
 # Agent tooling scratch (local session state, receipts, mailbox)
 .omo/
 .claude/settings.local.json
@@ -37,3 +40,6 @@ lerna-debug.log*
 
 # Local TLS material for the dev server (regenerate with `npm run certs`)
 .certs/
+# Safety net so key material cannot be committed from anywhere else
+*.key
+*.pem

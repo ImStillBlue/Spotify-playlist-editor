@@ -45,6 +45,8 @@ Built as a static site (GitHub Pages) using the "Bring Your Own Key" model - eac
 - [x] **Discard changes:** Revert to original order
 - [x] **Unsaved indicator:** Visual feedback when changes pending
 - [x] **Exit protection:** Warn before leaving with unsaved changes
+- [x] **Search:** Ranked fuzzy search over title and artist, with matched characters highlighted
+- [x] **Mobile action bar:** Selection actions pinned to the bottom of the screen, always reachable while scrolling
 
 ---
 
@@ -56,8 +58,8 @@ Built as a static site (GitHub Pages) using the "Bring Your Own Key" model - eac
 - [ ] Visual indicator for undo availability
 
 ### Search, Filter & Sort
-- [ ] In-playlist search by title/artist/album
-- [ ] Filter by artist or album
+- [x] In-playlist search by title/artist
+- [ ] Filter by album
 - [ ] Quick sort (by artist, album, date added, duration, title)
 
 ### Additional Features
@@ -73,6 +75,7 @@ Built as a static site (GitHub Pages) using the "Bring Your Own Key" model - eac
 - [ ] Performance optimization for large playlists (1000+ tracks)
 - [ ] Loading skeletons
 - [ ] Error handling with retry options
+- [ ] Desktop-specific layout for the selection bar (currently bottom-anchored at every width)
 
 ---
 
@@ -197,6 +200,29 @@ src/
 - Consider adding page transition animations (route changes)
 - Loading states could use skeleton loaders instead of spinners
 - Error states could have retry buttons
+- The fuzzy search density gate (`FUZZY_SPAN_RATIO` in `src/utils/trackSearch.ts`) is tuned
+  against a small fixture and should be re-checked against a real 300-track playlist.
+  See `docs/adr/0004-fuzzy-match-density-gate.md`
+- The editor uses an inner scroll container so the page cannot be dragged sideways, which
+  means the mobile address bar no longer auto-hides. Accepted trade; worth a feel on a
+  real phone. See `docs/adr/0003-inner-scroll-container.md`
+
+---
+
+## Mobile Work (Oct 2, 2026)
+
+Planned and built through a four-gate workflow in `docs/plans/mobile-editor-ux/`, with
+durable decisions recorded as ADRs in `docs/adr/`. The headline correction: the selection
+toolbar was never scrolling away — `position: sticky` held it. It grew from 64px to 172px
+on selection, wrapped its labels at 390px, and was translucent so rows ghosted through it.
+The "page moves when I scroll" complaint turned out to be a pre-existing horizontal
+overflow: the header collapsed its Discard/Save group with `w-0` and no `overflow-hidden`,
+leaving the document ~120px wider than the viewport.
+
+- Selection actions moved to a fixed bottom bar: 57px tall instead of 172px, in thumb reach
+- Selection is keyed by stable row identity, so it survives reordering and filtering
+- Added ranked fuzzy search with highlighted matches
+- Editor and Liked Songs scroll an inner container, so there is no background to grab
 
 ---
 
